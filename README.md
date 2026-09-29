@@ -121,12 +121,10 @@ VITE_WHATSAPP_NUMBER=      # número de la tienda, sin + ni espacios
 | Integrante | Rol | Foco técnico |
 |---|---|---|
 | Correa Reyes, Raúl Benjamín | Developer | Backend y base de datos |
-| Cruzes Contreras, Litzy Fiorella | Developer | Full stack, UX/UI e integración |
+| Cruces Contreras, Fiorella | Developer | Scrum Master · QA |
 | Quiroz Luna, Jeremies Ronaldo | Developer | Frontend |
-| Cervantes Galvan, Litzy Shannon | Scrum Master | QA |
+| Cervantes Galvan, Litzy Shannon | Scrum Master | Full stack, UX/UI e integración |
 | López Maya, Diego Arturo | Product Owner · Integrador | Apoyo en base de datos y migraciones |
-
-> Verificar nombres y roles contra la carátula del informe antes de dar por bueno este cuadro.
 
 ---
 
