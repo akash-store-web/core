@@ -1,0 +1,13 @@
+:root {
+  --color-marron: #5E4028;
+  --color-negro-calido: #252216;
+  --color-blanco: #FFFFFF;
+  --color-marmol-claro: #E9E9E7;
+  --color-marmol-beige: #DDD6D1;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
