@@ -11,7 +11,8 @@ function Login() {
             <div className="LoginTitleContainer">
 
                 <div className="LoginTitle">Akash Store</div>
-                <div className="LoginSubtitle">Panel de Administración</div>
+                <div className="LoginSubtitle">Panel de Administración de ejemplo
+                </div>
             </div>
 
             <form className="LoginForm">
