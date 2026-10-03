@@ -1,36 +1,45 @@
-.EmailInputContainer{
+.PassInputContainer{
 font-size: 16px;
 padding: 12px;
 padding-left: 40px;
 border-radius: 4px;
 outline: none;
 border: 1px solid rgb(175, 175, 175);
-transition: all 0.3s;
 font-family: 'Poppins', sans-serif;
-width: 86%;
+width: 100%;
 
 
 }
 
-.EmailInputContainer:focus{
+.PassInputContainer:focus{
     border: 2px solid purple;
     color: purple;
 
 }
 
-.EmailInputRoot:focus-within .EmailIcon{
+.PassInputRoot:focus-within .PassIcon{
     color: purple;
     opacity: 0.7
 }
 
-.EmailInputRoot{
+.PassInputRoot{
     position: relative;
 }
 
-.EmailIcon{
+.PassIcon{
     position: absolute;
-    left: 20px;
-    top: 10px;
-    font-size: 20px;
+    left: 10px; 
+   top: 14px;
+    font-size: 16px;
     color: rgb(175, 175, 175);
+}
+
+
+.eyeIcon{
+    position: absolute;
+    right: 10px; 
+   top: 11px;
+    font-size: 16px;
+    color: rgb(175, 175, 175);
+    cursor: pointer;
 }

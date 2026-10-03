@@ -10,7 +10,7 @@
   background-color: #E9E9E7;
   padding: 40px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.3);
   width: 400px;
   height: 450px;
     flex-direction: column;
@@ -22,6 +22,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  font-weight: bold; 
  margin-top: 10px;
 }
 
@@ -37,10 +38,11 @@ display: flex;
   font-size: 35px;
   font-weight: bold;
   color: #5E4028 ;
+    font-family: "Bebas Neue", sans-serif;  /* la fuente en sí */
 }
 
 .LoginSubtitle {
-  font-size: 14px;
+  font-size: 16px;
   color: #666;
   margin-top: 15px;
   margin-bottom: 20px;
@@ -57,7 +59,7 @@ display: flex;
 .LoginButton {
   width: 100%;
   padding: 10px;
-  background-color: #007bff;
+  background-color: purple;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -65,7 +67,22 @@ display: flex;
 }
 
 .LoginButton:hover {
-  background-color: #0056b3;
+  background-color: rgb(71, 3, 71);
 }
 
+.LoginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* el espacio entre CADA hijo directo, automático */
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+}
 
+.Repair{
+    font-size: 16px;
+    color: #666;
+    margin-top: 10px;
+   display: flex;
+   justify-content: right;
+
+}
