@@ -1,13 +1,18 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Login from './pages/admin/Login/Login.jsx';
+import PanelAdmin from './pages/admin//PanelAdmin/PanelAdmin.jsx';
+import HomePage from './pages/Home/HomePage.jsx';
 import './App.css'
 
 function App() {
   return (
-    <h1>Akash Store</h1>
-  )
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/admin" element={<Login />} />
+        <Route path="/adminPanel" element={<PanelAdmin />} />
+      </Routes>
+  );
 }
 
-export default App
+export default App;
