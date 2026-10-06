@@ -10,17 +10,12 @@ from app.schemas.catalogo import (
     ProductoCatalogo,
     VariantePublica,
 )
-from app.services.productos import VARIANTE_UNICA
-
-
-def _foto_principal(producto: Producto) -> str | None:
-    principal = next((i for i in producto.imagenes if i.es_principal), None)
-    principal = principal or (producto.imagenes[0] if producto.imagenes else None)
-    return principal.url if principal else None
+from app.services.productos import VARIANTE_UNICA, foto_principal
 
 
 def _tarjeta(producto: Producto) -> dict:
     precios = {v.precio_efectivo for v in producto.variantes} or {producto.precio_base}
+    foto, generica = foto_principal(producto.imagenes)
     return {
         "id": producto.id,
         "nombre": producto.nombre,
@@ -30,7 +25,8 @@ def _tarjeta(producto: Producto) -> dict:
         "precio_desde": len(precios) > 1,
         "disponible": any(not v.agotado for v in producto.variantes),
         "es_pieza_natural": producto.es_pieza_natural,
-        "foto_principal": _foto_principal(producto),
+        "foto_principal": foto,
+        "foto_generica": generica,
     }
 
 

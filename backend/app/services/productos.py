@@ -2,12 +2,20 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from app import config
+from app.models.imagen import Imagen
 from app.models.categoria import Categoria
 from app.models.producto import Producto
 from app.models.variante import Variante
 from app.schemas.producto import ProductoCrear, ProductoIn, ProductoListItem
 
 VARIANTE_UNICA = "Única"
+
+
+def foto_principal(imagenes: list[Imagen]) -> tuple[str, bool]:
+    """(url, es_generica): la foto marcada como principal, si no la primera, y si no hay fotos
+    reales la imagen genérica. Así el frontend nunca recibe una foto vacía."""
+    principal = next((i for i in imagenes if i.es_principal), imagenes[0] if imagenes else None)
+    return (principal.url, False) if principal else (config.FOTO_GENERICA_URL, True)
 
 
 def obtener_producto(db: Session, producto_id: int) -> Producto:
@@ -78,7 +86,7 @@ def listar_productos(db: Session, q: str | None = None, categoria_id: int | None
     filas = []
     for p in consulta.all():
         existencias_total = sum(v.existencias for v in p.variantes)
-        principal = next((i for i in p.imagenes if i.es_principal), p.imagenes[0] if p.imagenes else None)
+        foto, generica = foto_principal(p.imagenes)
         filas.append(
             ProductoListItem(
                 id=p.id,
@@ -90,7 +98,8 @@ def listar_productos(db: Session, q: str | None = None, categoria_id: int | None
                 num_variantes=len(p.variantes),
                 existencias_total=existencias_total,
                 agotado=existencias_total == 0,
-                foto_principal=principal.url if principal else None,
+                foto_principal=foto,
+                foto_generica=generica,
             )
         )
     return filas

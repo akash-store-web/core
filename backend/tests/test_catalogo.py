@@ -1,6 +1,7 @@
 """Catálogo público: solo publicados (HU016), precio visible (HU002) y agotados (HU003, HU015)."""
 from sqlalchemy.orm import Session
 
+from app import config
 from app.models.imagen import Imagen
 
 ANILLO = {
@@ -64,7 +65,7 @@ def test_tarjeta_con_precio_unico(client, auth):
     assert tarjeta == {
         "id": 1, "nombre": "Spray áurico", "categoria_id": 6, "categoria": "Inciensos y limpieza energética",
         "precio": "25.00", "precio_desde": False, "disponible": True, "es_pieza_natural": False,
-        "foto_principal": None,
+        "foto_principal": config.FOTO_GENERICA_URL, "foto_generica": True,
     }
 
 
@@ -110,7 +111,8 @@ def test_foto_principal_e_imagenes(client, auth, engine):
         db.add_all([Imagen(producto_id=pid, url="https://ejemplo/2.jpg", orden=1),
                     Imagen(producto_id=pid, url="https://ejemplo/1.jpg", orden=0, es_principal=True)])
         db.commit()
-    assert client.get("/catalogo").json()[0]["foto_principal"] == "https://ejemplo/1.jpg"
+    tarjeta = client.get("/catalogo").json()[0]
+    assert (tarjeta["foto_principal"], tarjeta["foto_generica"]) == ("https://ejemplo/1.jpg", False)
     assert [i["url"] for i in client.get(f"/catalogo/{pid}").json()["imagenes"]] == ["https://ejemplo/1.jpg",
                                                                                       "https://ejemplo/2.jpg"]
 

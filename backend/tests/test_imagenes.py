@@ -139,3 +139,22 @@ def test_con_foto_ya_se_puede_exigir_al_publicar(client, auth, bucket, monkeypat
     assert client.patch("/admin/productos/1/publicado", json={"publicado": True}, headers=auth).status_code == 409
     _subir(client, auth)
     assert client.patch("/admin/productos/1/publicado", json={"publicado": True}, headers=auth).status_code == 200
+
+
+def test_la_imagen_generica_no_cuenta_como_foto_para_publicar(client, auth, bucket, monkeypatch):
+    """foto_principal nunca es null, pero la genérica no engaña a PUBLICAR_EXIGE_FOTO."""
+    monkeypatch.setattr(config, "PUBLICAR_EXIGE_FOTO", True)
+    _producto(client, auth)
+    fila = client.get("/admin/productos", headers=auth).json()[0]
+    assert (fila["foto_principal"], fila["foto_generica"]) == (config.FOTO_GENERICA_URL, True)
+    assert client.patch("/admin/productos/1/publicado", json={"publicado": True}, headers=auth).status_code == 409
+    real = _subir(client, auth).json()["url"]
+    fila = client.get("/admin/productos", headers=auth).json()[0]
+    assert (fila["foto_principal"], fila["foto_generica"]) == (real, False)
+
+
+def test_al_borrar_la_ultima_foto_vuelve_la_generica(client, auth, bucket):
+    _producto(client, auth)
+    foto = _subir(client, auth).json()["id"]
+    client.delete(f"{URL}/{foto}", headers=auth)
+    assert client.get("/admin/productos", headers=auth).json()[0]["foto_generica"] is True

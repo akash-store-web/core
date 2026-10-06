@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 
+from app import config
+
 from app.models.imagen import Imagen
 from app.models.producto import Producto
 from app.models.variante import Variante
@@ -170,7 +172,8 @@ def test_listado_con_resumen_de_variantes_y_foto(client, auth, engine):
     assert pulsera["existencias_total"] == 5
     assert pulsera["foto_principal"] == "https://ejemplo/principal.jpg"
     assert roll_on["num_variantes"] == 1
-    assert roll_on["foto_principal"] is None
+    assert (roll_on["foto_principal"], roll_on["foto_generica"]) == (config.FOTO_GENERICA_URL, True)
+    assert pulsera["foto_generica"] is False
 
 
 def test_busqueda_por_nombre_sin_distinguir_mayusculas(client, auth):

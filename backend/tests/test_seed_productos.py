@@ -21,7 +21,7 @@ def test_carga_productos_despublicados_con_sus_variantes(engine, client, auth):
     filas = {f["nombre"]: f for f in client.get("/admin/productos", headers=auth).json()}
     assert filas["Pulsera de cuarzo"]["num_variantes"] == 12
     assert filas["Spray áurico"]["num_variantes"] == 1  # variante "Única"
-    assert all(f["foto_principal"] is None for f in filas.values())
+    assert all(f["foto_generica"] for f in filas.values())  # sin fotos reales: imagen genérica
 
     anillo = filas["Anillo de plata 925 con piedra"]["id"]
     precios = {v["nombre"]: v["precio_efectivo"]
