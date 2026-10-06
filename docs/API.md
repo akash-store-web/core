@@ -7,6 +7,8 @@ Backend FastAPI. Esta guía resume el contrato; la referencia interactiva siempr
 | Producción (Render) | `https://akash-store-api.onrender.com` | [/docs](https://akash-store-api.onrender.com/docs) |
 | Local | `http://localhost:8000` | [/docs](http://localhost:8000/docs) |
 
+**Postman.** En `docs/postman/` están la colección (`AkashStore.postman_collection.json`) y dos entornos (Render y Local). En Postman: **Import** → arrastra los tres archivos → elige el entorno → completa `email` y `password` en la columna *Current value* (así no se exportan) → ejecuta **0. Estado** y luego **1. Auth / Login**: el token se guarda solo y las carpetas del panel lo usan. Las peticiones marcadas con ⚠️ escriben en la base del entorno elegido (en Render, la real).
+
 En el frontend la URL base viene de `VITE_API_URL`. Render gratuito "duerme" tras 15 min sin uso: la primera petición puede tardar ~50 s; muestren un estado de carga y no lo traten como error.
 
 ---
