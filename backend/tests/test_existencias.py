@@ -7,7 +7,7 @@ ROLL_ON = {
     "precio_base": "30.00",
     "existencias": 3,
 }
-URL = "/admin/productos/1/variantes/1/existencias"
+URL = "/admin/variantes/1/stock"
 
 
 def _producto(client, auth):
@@ -28,12 +28,11 @@ def test_sumar_y_restar_con_botones(client, auth):
     assert _patch(client, auth, cambio=-2).json()["existencias"] == 2
 
 
-def test_fijar_cantidad_exacta(client, auth):
+def test_fijar_cantidad_exacta_con_respuesta_ligera(client, auth):
     _producto(client, auth)
     respuesta = _patch(client, auth, existencias=12)
     assert respuesta.status_code == 200
-    assert respuesta.json()["existencias"] == 12
-    assert respuesta.json()["agotado"] is False
+    assert respuesta.json() == {"id": 1, "producto_id": 1, "existencias": 12, "agotado": False}
 
 
 def test_llegar_a_cero_marca_agotado(client, auth):
@@ -73,7 +72,6 @@ def test_cada_variante_lleva_su_propio_stock(client, auth):
     assert (fila["existencias_total"], fila["agotado"]) == (2, False)
 
 
-def test_variante_o_producto_inexistente(client, auth):
+def test_variante_inexistente(client, auth):
     _producto(client, auth)
-    assert _patch(client, auth, url="/admin/productos/1/variantes/99/existencias", cambio=1).status_code == 404
-    assert _patch(client, auth, url="/admin/productos/99/variantes/1/existencias", cambio=1).status_code == 404
+    assert _patch(client, auth, url="/admin/variantes/99/stock", cambio=1).status_code == 404

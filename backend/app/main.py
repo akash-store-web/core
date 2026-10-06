@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import CORS_ORIGINS
 from app.routers.admin_productos import router as admin_productos_router
 from app.routers.admin_variantes import router as admin_variantes_router
+from app.routers.admin_variantes import stock_router as admin_stock_router
 from app.routers.auth import router as auth_router
 
 app = FastAPI(title="Akash Store API")
@@ -12,6 +13,7 @@ app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS,
 app.include_router(auth_router)
 app.include_router(admin_productos_router)
 app.include_router(admin_variantes_router)
+app.include_router(admin_stock_router)
 
 @app.get("/health")
 def health():

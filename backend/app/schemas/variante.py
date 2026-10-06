@@ -30,6 +30,17 @@ class ExistenciasIn(BaseModel):
         return self
 
 
+class StockOut(BaseModel):
+    """Respuesta ligera para el ajuste rápido de stock (HU015)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    producto_id: int
+    existencias: int
+    agotado: bool
+
+
 class VarianteOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

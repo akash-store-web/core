@@ -50,8 +50,10 @@ def ajustar_existencias(db: Session, variante_id: int, cambio: int) -> bool:
     return resultado.rowcount == 1
 
 
-def actualizar_existencias(db: Session, producto_id: int, variante_id: int, datos: ExistenciasIn) -> Variante:
-    variante = obtener_variante(db, producto_id, variante_id)
+def actualizar_existencias(db: Session, variante_id: int, datos: ExistenciasIn) -> Variante:
+    variante = db.get(Variante, variante_id)
+    if variante is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Variante no encontrada")
     if datos.existencias is not None:
         variante.existencias = datos.existencias
     elif not ajustar_existencias(db, variante.id, datos.cambio):
