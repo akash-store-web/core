@@ -1,4 +1,6 @@
-from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+from tests.fabricas import crear_pedido
 
 PULSERA = {
     "categoria_id": 2,
@@ -129,11 +131,7 @@ def test_no_se_elimina_la_ultima_variante(client, auth):
 def test_no_se_elimina_variante_con_pedidos(client, auth, engine):
     _producto(client, auth)
     vid = _variante(client, auth).json()["id"]
-    # Tabla mínima con la misma FK que detalle_pedido en Supabase (sin ON DELETE).
-    with engine.begin() as conexion:
-        conexion.execute(text(
-            "CREATE TABLE detalle_pedido (id INTEGER PRIMARY KEY, variante_id INTEGER NOT NULL REFERENCES variante(id))"
-        ))
-        conexion.execute(text("INSERT INTO detalle_pedido (variante_id) VALUES (:vid)"), {"vid": vid})
+    with Session(engine) as db:  # detalle_pedido tiene FK a variante sin ON DELETE, como en Supabase
+        crear_pedido(db, "AK-0001", [(vid, 1, "25.00")])
     assert client.delete(f"{URL}/{vid}", headers=auth).status_code == 409
     assert len(client.get(URL, headers=auth).json()) == 2

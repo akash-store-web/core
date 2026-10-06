@@ -181,6 +181,19 @@ items = [
         req("Editar distrito (quitar cobertura)", "PUT", "/admin/distritos/{{distrito_id}}",
             {"nombre": "Distrito de prueba QA", "zona_envio_id": None}, ESCRIBE, codigo(200)),
     ]),
+    carpeta("8. Panel: pedidos 🔒", "Bandeja y detalle de pedidos (HU017). Solo lectura.", [
+        req("Bandeja de pedidos", "GET", "/admin/pedidos",
+            descripcion="Del más reciente al más antiguo. Estados: pendiente_pago, por_validar, confirmado, "
+                        "rechazado, enviado, entregado, vencido.",
+            eventos=test('pm.test("Responde 200", () => pm.response.to.have.status(200));',
+                         'const p = pm.response.json();',
+                         'if (p.length) pm.collectionVariables.set("pedido_id", p[0].id);'),
+            query=[{"key": "estado", "value": "", "description": "opcional, p. ej. por_validar"},
+                   {"key": "q", "value": "", "description": "número, nombre o teléfono (opcional)"}]),
+        req("Detalle del pedido", "GET", "/admin/pedidos/{{pedido_id}}",
+            descripcion="Clienta, ítems con precio histórico, totales, comprobante e historial de estados.",
+            eventos=codigo(200)),
+    ]),
 ]
 
 # "{{distrito_id}}" dentro de una lista JSON debe ir sin comillas para que sea número
@@ -203,7 +216,7 @@ coleccion = {
     },
     "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]},
     "variable": [{"key": k, "value": v} for k, v in
-                 [("token", ""), ("producto_id", "1"), ("variante_id", "1"), ("imagen_id", "1"), ("zona_id", "1"), ("distrito_id", "1")]],
+                 [("token", ""), ("producto_id", "1"), ("variante_id", "1"), ("imagen_id", "1"), ("zona_id", "1"), ("distrito_id", "1"), ("pedido_id", "1")]],
     "item": items,
 }
 

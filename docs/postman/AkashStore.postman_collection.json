@@ -38,6 +38,10 @@
     {
       "key": "distrito_id",
       "value": "1"
+    },
+    {
+      "key": "pedido_id",
+      "value": "1"
     }
   ],
   "item": [
@@ -1519,6 +1523,85 @@
                 }
               }
             }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Panel: pedidos 🔒",
+      "description": "Bandeja y detalle de pedidos (HU017). Solo lectura.",
+      "item": [
+        {
+          "name": "Bandeja de pedidos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/pedidos?estado=&q=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "pedidos"
+              ],
+              "query": [
+                {
+                  "key": "estado",
+                  "value": "",
+                  "description": "opcional, p. ej. por_validar"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "número, nombre o teléfono (opcional)"
+                }
+              ]
+            },
+            "description": "Del más reciente al más antiguo. Estados: pendiente_pago, por_validar, confirmado, rechazado, enviado, entregado, vencido."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const p = pm.response.json();",
+                  "if (p.length) pm.collectionVariables.set(\"pedido_id\", p[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle del pedido",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/pedidos/{{pedido_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "pedidos",
+                "{{pedido_id}}"
+              ]
+            },
+            "description": "Clienta, ítems con precio histórico, totales, comprobante e historial de estados."
           },
           "event": [
             {
