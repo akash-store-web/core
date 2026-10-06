@@ -31,6 +31,19 @@ class ProductoIn(BaseModel):
     es_pieza_natural: bool = False
 
 
+class ProductoCrear(ProductoIn):
+    """Alta de producto. Todo producto nace con la variante "Única" (HU027 #3): si no tiene piedras
+    o aromas, funciona con esa única existencia; si los tiene, se renombra y se agregan las demás."""
+
+    existencias: Annotated[int, Field(ge=0)] = Field(0, examples=[5])
+
+
+class PublicadoIn(BaseModel):
+    """HU016: interruptor Activo/Inactivo del listado del panel."""
+
+    publicado: bool = Field(examples=[True])
+
+
 class ImagenOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -69,4 +82,5 @@ class ProductoListItem(BaseModel):
     publicado: bool
     num_variantes: int
     existencias_total: int
+    agotado: bool
     foto_principal: str | None
