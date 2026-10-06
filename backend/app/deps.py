@@ -35,6 +35,8 @@ def get_current_user(
             algorithms=[ALGORITHM],
             options={"require": ["exp", "sub"]},
         )
+        if "tipo" in payload:  # p. ej. un enlace de restablecimiento (HU024) no abre sesión
+            raise jwt.InvalidTokenError("No es un token de acceso")
         user_id = int(payload["sub"])
     except jwt.ExpiredSignatureError:
         raise _no_autorizado("Token expirado")
