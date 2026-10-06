@@ -1,48 +1,17 @@
-import os
 from datetime import datetime, timedelta, timezone
 
-os.environ["DATABASE_URL"] = "sqlite://"
-TEST_SECRET = "test-secret-only-at-least-32-bytes-long"
-os.environ["JWT_SECRET"] = TEST_SECRET
-
 import jwt
-import pytest
 from fastapi import Depends
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.pool import StaticPool
 
-from app.database import Base, get_db
 from app.deps import get_current_user
 from app.main import app
 from app.models.usuario import Usuario
-from app.services.auth import hash_password
+from tests.conftest import TEST_SECRET
 
 
 @app.get("/__test_protected")
 def protected(user: Usuario = Depends(get_current_user)):
     return {"id": user.id}
-
-
-@pytest.fixture
-def client():
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    Base.metadata.create_all(engine)
-    with Session(engine) as db:
-        db.add(Usuario(email="duena@example.com", password_hash=hash_password("clave-segura")))
-        db.add(Usuario(email="inactiva@example.com", password_hash=hash_password("clave-segura"), activo=False))
-        db.commit()
-
-    def test_db():
-        with Session(engine) as db:
-            yield db
-
-    app.dependency_overrides[get_db] = test_db
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
-    engine.dispose()
 
 
 def _login(client, email="duena@example.com", password="clave-segura"):
