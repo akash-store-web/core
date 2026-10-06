@@ -31,6 +31,13 @@ class ProductoIn(BaseModel):
     es_pieza_natural: bool = False
 
 
+class ProductoCrear(ProductoIn):
+    """Alta de producto. Todo producto nace con la variante "Única" (HU027 #3): si no tiene piedras
+    o aromas, funciona con esa única existencia; si los tiene, se renombra y se agregan las demás."""
+
+    existencias: Annotated[int, Field(ge=0)] = Field(0, examples=[5])
+
+
 class ImagenOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

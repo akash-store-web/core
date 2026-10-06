@@ -57,6 +57,21 @@ def test_crear_producto_solo_con_campos_obligatorios(client, auth):
     assert respuesta.json()["es_pieza_natural"] is False
 
 
+def test_producto_sin_variantes_nace_con_variante_unica(client, auth):
+    """HU027 #3: un producto sin variantes funciona con una única existencia."""
+    _crear(client, auth, existencias=4)
+    variantes = client.get("/admin/productos/1/variantes", headers=auth).json()
+    assert [(v["nombre"], v["existencias"], v["precio"]) for v in variantes] == [("Única", 4, None)]
+    assert variantes[0]["precio_efectivo"] == "25.00"
+    assert client.get("/admin/productos", headers=auth).json()[0]["existencias_total"] == 4
+
+
+def test_existencias_iniciales_por_defecto_y_negativas(client, auth):
+    _crear(client, auth)
+    assert client.get("/admin/productos", headers=auth).json()[0]["existencias_total"] == 0
+    assert _crear(client, auth, existencias=-1).status_code == 422
+
+
 def test_crear_producto_ignora_publicado(client, auth):
     assert _crear(client, auth, publicado=True).json()["publicado"] is False
 
@@ -151,10 +166,10 @@ def test_listado_con_resumen_de_variantes_y_foto(client, auth, engine):
     assert [f["nombre"] for f in filas] == ["Pulsera de cuarzo", "Roll-on de amatista"]
     pulsera, roll_on = filas
     assert pulsera["categoria"] == "Pulseras"
-    assert pulsera["num_variantes"] == 2
+    assert pulsera["num_variantes"] == 3  # "Única" (0) + Cuarzo rosa (3) + Amatista (2)
     assert pulsera["existencias_total"] == 5
     assert pulsera["foto_principal"] == "https://ejemplo/principal.jpg"
-    assert roll_on["num_variantes"] == 0
+    assert roll_on["num_variantes"] == 1
     assert roll_on["foto_principal"] is None
 
 

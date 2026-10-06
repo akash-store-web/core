@@ -39,6 +39,9 @@ def actualizar_variante(db: Session, producto_id: int, variante_id: int, datos: 
 
 def eliminar_variante(db: Session, producto_id: int, variante_id: int) -> None:
     variante = obtener_variante(db, producto_id, variante_id)
+    if len(variante.producto.variantes) == 1:
+        # HU027 #3: todo producto conserva al menos una variante, que es donde vive su stock.
+        raise HTTPException(status.HTTP_409_CONFLICT, "El producto debe conservar al menos una variante")
     db.delete(variante)
     try:
         db.commit()

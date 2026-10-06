@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.categoria import Categoria
 from app.models.producto import Producto
-from app.schemas.producto import ProductoIn, ProductoListItem
+from app.models.variante import Variante
+from app.schemas.producto import ProductoCrear, ProductoIn, ProductoListItem
+
+VARIANTE_UNICA = "Única"
 
 
 def obtener_producto(db: Session, producto_id: int) -> Producto:
@@ -18,9 +21,11 @@ def _validar_categoria(db: Session, categoria_id: int) -> None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "La categoría no existe")
 
 
-def crear_producto(db: Session, datos: ProductoIn) -> Producto:
+def crear_producto(db: Session, datos: ProductoCrear) -> Producto:
     _validar_categoria(db, datos.categoria_id)
-    producto = Producto(**datos.model_dump())
+    producto = Producto(**datos.model_dump(exclude={"existencias"}))
+    # HU027 #3: un producto sin variantes funciona con una variante única implícita.
+    producto.variantes.append(Variante(nombre=VARIANTE_UNICA, existencias=datos.existencias))
     db.add(producto)
     db.commit()
     db.refresh(producto)

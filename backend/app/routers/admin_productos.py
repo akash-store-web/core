@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_admin
 from app.models.categoria import Categoria
-from app.schemas.producto import CategoriaOut, ProductoIn, ProductoListItem, ProductoOut
+from app.schemas.producto import CategoriaOut, ProductoCrear, ProductoIn, ProductoListItem, ProductoOut
 from app.services import productos as servicio
 
 router = APIRouter(prefix="/admin", tags=["admin: productos"], dependencies=[Depends(get_current_admin)])
@@ -21,7 +21,7 @@ def listar_productos(q: str | None = None, categoria_id: int | None = None, db: 
 
 
 @router.post("/productos", response_model=ProductoOut, status_code=status.HTTP_201_CREATED)
-def crear_producto(datos: ProductoIn, db: Session = Depends(get_db)):
+def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
     return servicio.crear_producto(db, datos)
 
 
