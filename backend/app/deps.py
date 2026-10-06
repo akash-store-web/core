@@ -45,3 +45,9 @@ def get_current_user(
     if usuario is None or not usuario.activo:
         raise _no_autorizado("Usuario no válido")
     return usuario
+
+
+def get_current_admin(usuario: Usuario = Depends(get_current_user)) -> Usuario:
+    """Protege las rutas /admin. Hoy toda cuenta es de la propietaria; cuando la tabla
+    usuario tenga la columna rol, aquí se exige rol admin (403 para cliente o proveedor)."""
+    return usuario

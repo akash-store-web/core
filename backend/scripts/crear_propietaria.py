@@ -1,7 +1,7 @@
 import getpass
 
-from app import models 
-from app.database import Base, SessionLocal, engine
+from app import models  # noqa: F401  registra todos los modelos para las relaciones
+from app.database import SessionLocal
 from app.models.usuario import Usuario
 from app.services.auth import hash_password
 
@@ -18,8 +18,7 @@ def main() -> None:
     if not email or "@" not in email:
         raise SystemExit("Ingresa un email válido.")
 
-    Base.metadata.create_all(bind=engine)
-
+    # Las tablas las administra Diego en Supabase: aquí no se crean ni modifican.
     db = SessionLocal()
     try:
         if db.query(Usuario).filter_by(email=email).first():
