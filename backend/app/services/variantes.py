@@ -1,9 +1,10 @@
 from fastapi import HTTPException, status
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.variante import Variante
-from app.schemas.variante import VarianteIn
+from app.schemas.variante import ExistenciasIn, VarianteIn
 from app.services.productos import obtener_producto
 
 
@@ -32,6 +33,30 @@ def actualizar_variante(db: Session, producto_id: int, variante_id: int, datos: 
     variante = obtener_variante(db, producto_id, variante_id)
     for campo, valor in datos.model_dump().items():
         setattr(variante, campo, valor)
+    db.commit()
+    db.refresh(variante)
+    return variante
+
+
+def ajustar_existencias(db: Session, variante_id: int, cambio: int) -> bool:
+    """Suma `cambio` (positivo o negativo) en una sola sentencia SQL, para que dos ajustes
+    simultáneos no se pisen. Devuelve False si el resultado quedaría negativo.
+    No hace commit: quien llama decide la transacción (HU015 y, más adelante, propuestas de stock)."""
+    resultado = db.execute(
+        update(Variante)
+        .where(Variante.id == variante_id, Variante.existencias + cambio >= 0)
+        .values(existencias=Variante.existencias + cambio)
+    )
+    return resultado.rowcount == 1
+
+
+def actualizar_existencias(db: Session, producto_id: int, variante_id: int, datos: ExistenciasIn) -> Variante:
+    variante = obtener_variante(db, producto_id, variante_id)
+    if datos.existencias is not None:
+        variante.existencias = datos.existencias
+    elif not ajustar_existencias(db, variante.id, datos.cambio):
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Las existencias no pueden quedar en negativo")
     db.commit()
     db.refresh(variante)
     return variante

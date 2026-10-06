@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_admin
-from app.schemas.variante import VarianteIn, VarianteOut
+from app.schemas.variante import ExistenciasIn, VarianteIn, VarianteOut
 from app.services import variantes as servicio
 
 router = APIRouter(
@@ -26,6 +26,12 @@ def crear_variante(producto_id: int, datos: VarianteIn, db: Session = Depends(ge
 @router.put("/{variante_id}", response_model=VarianteOut)
 def actualizar_variante(producto_id: int, variante_id: int, datos: VarianteIn, db: Session = Depends(get_db)):
     return servicio.actualizar_variante(db, producto_id, variante_id, datos)
+
+
+@router.patch("/{variante_id}/existencias", response_model=VarianteOut)
+def actualizar_existencias(producto_id: int, variante_id: int, datos: ExistenciasIn, db: Session = Depends(get_db)):
+    """HU015: ajuste rápido de stock desde el listado del panel, sin abrir otra pantalla."""
+    return servicio.actualizar_existencias(db, producto_id, variante_id, datos)
 
 
 @router.delete("/{variante_id}", status_code=status.HTTP_204_NO_CONTENT)

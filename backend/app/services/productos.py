@@ -77,6 +77,7 @@ def listar_productos(db: Session, q: str | None = None, categoria_id: int | None
 
     filas = []
     for p in consulta.all():
+        existencias_total = sum(v.existencias for v in p.variantes)
         principal = next((i for i in p.imagenes if i.es_principal), p.imagenes[0] if p.imagenes else None)
         filas.append(
             ProductoListItem(
@@ -87,7 +88,8 @@ def listar_productos(db: Session, q: str | None = None, categoria_id: int | None
                 precio_base=p.precio_base,
                 publicado=p.publicado,
                 num_variantes=len(p.variantes),
-                existencias_total=sum(v.existencias for v in p.variantes),
+                existencias_total=existencias_total,
+                agotado=existencias_total == 0,
                 foto_principal=principal.url if principal else None,
             )
         )

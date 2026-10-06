@@ -17,6 +17,10 @@ class Variante(Base):
     producto = relationship("Producto", back_populates="variantes")
 
     @property
+    def agotado(self) -> bool:
+        return self.existencias <= 0
+
+    @property
     def precio_efectivo(self):
         """Precio con el que se vende: el propio de la variante o, si no tiene, el del producto."""
         return self.precio if self.precio is not None else self.producto.precio_base

@@ -82,4 +82,5 @@ class ProductoListItem(BaseModel):
     publicado: bool
     num_variantes: int
     existencias_total: int
+    agotado: bool
     foto_principal: str | None

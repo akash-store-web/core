@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.schemas.producto import Precio, PrecioOut
 
@@ -15,6 +15,21 @@ class VarianteIn(BaseModel):
     propiedades: Annotated[str, StringConstraints(strip_whitespace=True)] | None = Field(None, examples=["Amor propio y armonía"])
 
 
+class ExistenciasIn(BaseModel):
+    """HU015: envía `cambio` (botones +/-, p. ej. -1) o `existencias` (cantidad exacta), no ambos."""
+
+    cambio: int | None = Field(None, examples=[-1])
+    existencias: Annotated[int, Field(ge=0)] | None = Field(None, examples=[None])
+
+    @model_validator(mode="after")
+    def _uno_solo(self):
+        if (self.cambio is None) == (self.existencias is None):
+            raise ValueError("Envía 'cambio' o 'existencias', uno solo")
+        if self.cambio == 0:
+            raise ValueError("'cambio' no puede ser 0")
+        return self
+
+
 class VarianteOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -24,4 +39,5 @@ class VarianteOut(BaseModel):
     precio: Decimal | None = Field(examples=["32.00"])
     precio_efectivo: PrecioOut
     existencias: int
+    agotado: bool
     propiedades: str | None
