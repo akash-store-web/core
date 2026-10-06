@@ -8,6 +8,7 @@ from app.routers.admin_productos import router as admin_productos_router
 from app.routers.admin_variantes import router as admin_variantes_router
 from app.routers.admin_variantes import stock_router as admin_stock_router
 from app.routers.auth import router as auth_router
+from app.routers.carrito import router as carrito_router
 from app.routers.catalogo import router as catalogo_router
 from app.routers.envio import router as envio_router
 
@@ -22,6 +23,7 @@ app.include_router(admin_imagenes_router)
 app.include_router(admin_envios_router)
 app.include_router(envio_router)
 app.include_router(catalogo_router)
+app.include_router(carrito_router)
 
 @app.get("/health")
 def health():

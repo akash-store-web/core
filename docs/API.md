@@ -246,6 +246,40 @@ La tarjeta más:
 
 ---
 
+## Público: carrito (sin login, HU009)
+
+El carrito vive en el navegador (por ejemplo, en `localStorage`). Antes de mostrar el resumen del pedido y antes del checkout, valídenlo contra el stock real:
+
+### `POST /carrito/validar`
+```json
+// petición: variante_id de la ficha (GET /catalogo/{id} → variantes[].id)
+{"items": [{"variante_id": 1, "cantidad": 2}, {"variante_id": 2, "cantidad": 5}]}
+// 200 — siempre 200; el resultado está en "valido" y en el estado de cada ítem
+{"valido": false, "total": "170.00",
+ "items": [
+  {"variante_id": 1, "producto_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
+   "es_pieza_natural": true, "cantidad": 2, "estado": "ok", "cantidad_maxima": 3,
+   "precio_unitario": "45.00", "subtotal": "90.00", "mensaje": null},
+  {"variante_id": 2, "producto_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Turmalina negra",
+   "es_pieza_natural": true, "cantidad": 5, "estado": "stock_insuficiente", "cantidad_maxima": 2,
+   "precio_unitario": "40.00", "subtotal": "80.00", "mensaje": "Solo quedan 2; ajusta la cantidad"}]}
+```
+
+| `estado` | Qué hacer en la pantalla |
+|---|---|
+| `ok` | Nada |
+| `stock_insuficiente` | Mostrar `mensaje` y ofrecer bajar la cantidad a `cantidad_maxima` |
+| `agotado` | Mostrar `mensaje` ("Agotado; quítalo del pedido") |
+| `no_disponible` | El producto se despublicó o ya no existe: quitarlo del carrito |
+
+- Solo con `valido: true` se habilita el botón para continuar al checkout.
+- `subtotal` se calcula con lo que sí se puede comprar; `total` no incluye el envío (ver `/envio/costo`).
+- `es_pieza_natural: true` → repetir el aviso de variación natural en el resumen (HU009 #5).
+- Usen siempre `precio_unitario` de esta respuesta: si la propietaria cambió un precio, aquí ya viene el vigente.
+- Si la misma variante llega dos veces, se suman las cantidades. `cantidad` va de 1 a 99.
+
+---
+
 ## Público: envío para el checkout (sin login)
 
 ### `GET /envio/distritos`
