@@ -84,6 +84,7 @@ Scripts del backend (desde `backend/`, con el `.env` apuntando a Supabase). Los 
 | `python -m scripts.restablecer_contrasena` | Plan de emergencia si la propietaria pierde el acceso |
 | `python -m scripts.seed_distritos` | Carga los 43 distritos de Lima y 7 del Callao, sin zona |
 | `python -m scripts.seed_productos` | Carga productos de ejemplo, despublicados y sin fotos |
+| `python -m scripts.generar_postman` | Regenera `docs/postman/` y falla si alguna ruta de la API no está en la colección |
 
 Ningún script crea ni modifica tablas: el esquema se administra en Supabase.
 

@@ -446,9 +446,56 @@
       }
     },
     {
-      "name": "3. Envío (público)",
-      "description": "Para el checkout, sin login.",
+      "name": "3. Carrito y envío (público)",
+      "description": "Para el carrito y el checkout, sin login.",
       "item": [
+        {
+          "name": "Validar carrito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/carrito/validar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "carrito",
+                "validar"
+              ]
+            },
+            "description": "Revisa cada ítem contra el stock real. Siempre 200; `valido: true` = se puede pasar al checkout. Estados por ítem: ok, stock_insuficiente, agotado, no_disponible.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 2\n    },\n    {\n      \"variante_id\": 1,\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Trae valido y total\", () => { const d = pm.response.json(); pm.expect(d).to.have.property(\"valido\"); pm.expect(d.total).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Distritos con costo",
           "request": {
