@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import CORS_ORIGINS
 from app.routers.admin_envios import router as admin_envios_router
 from app.routers.admin_imagenes import router as admin_imagenes_router
+from app.routers.admin_pedidos import router as admin_pedidos_router
 from app.routers.admin_productos import router as admin_productos_router
 from app.routers.admin_variantes import router as admin_variantes_router
 from app.routers.admin_variantes import stock_router as admin_stock_router
@@ -21,6 +22,7 @@ app.include_router(admin_variantes_router)
 app.include_router(admin_stock_router)
 app.include_router(admin_imagenes_router)
 app.include_router(admin_envios_router)
+app.include_router(admin_pedidos_router)
 app.include_router(envio_router)
 app.include_router(catalogo_router)
 app.include_router(carrito_router)
