@@ -1,0 +1,1491 @@
+{
+  "info": {
+    "name": "Akash Store API",
+    "description": "Colección de pruebas del backend de Akash Store. Guía completa: `docs/API.md`.\n\n1. Importa la colección y un entorno (Render o Local).\n2. En el entorno, completa `email` y `password` (valor actual, NO el inicial: así no se exporta).\n3. Ejecuta **1. Auth / Login**: el token se guarda solo.\n\n⚠️ El entorno Render usa la base real de Supabase: las peticiones marcadas escriben datos reales. Usa nombres con 'QA' y despublica lo que crees.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "producto_id",
+      "value": "1"
+    },
+    {
+      "key": "variante_id",
+      "value": "1"
+    },
+    {
+      "key": "imagen_id",
+      "value": "1"
+    },
+    {
+      "key": "zona_id",
+      "value": "1"
+    },
+    {
+      "key": "distrito_id",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Estado",
+      "description": "Ejecútalo primero: Render gratuito se duerme y la primera respuesta puede tardar ~50 s.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Debe responder {\"status\": \"ok\"}.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "1. Auth",
+      "description": "Primero ejecuta **Login**: guarda el token y todas las rutas del panel lo usan solas.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Usa las variables `email` y `password` del entorno. Guarda `access_token` en `{{token}}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login correcto\", () => pm.response.to.have.status(200));",
+                  "const datos = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", datos.access_token);",
+                  "console.log(\"Token guardado en la variable {{token}} (dura 30 minutos)\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con credenciales inválidas (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Debe responder 401 sin decir qué campo falló.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recuperar contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/recuperar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "recuperar"
+              ]
+            },
+            "description": "Siempre 202, exista o no el correo. ⚠️ Si el correo existe, Brevo envía un correo real.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 202\", () => pm.response.to.have.status(202));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restablecer contraseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/restablecer",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "restablecer"
+              ]
+            },
+            "description": "El token sale del enlace `.../restablecer?token=...`. Vence en 30 min y sirve una vez. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<pega aquí el token del enlace del correo>\",\n  \"nueva_contrasena\": \"nueva-clave-segura\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Cambiar contraseña (con sesión)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/contrasena",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "contrasena"
+              ]
+            },
+            "description": "⚠️ Cambia la contraseña real de la cuenta del entorno. Después actualiza `password` en el entorno.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actual\": \"{{password}}\",\n  \"nueva\": \"nueva-clave-segura\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Catálogo (público)",
+      "description": "Sin login. Solo productos publicados; nunca muestra existencias exactas.",
+      "item": [
+        {
+          "name": "Catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo"
+              ]
+            },
+            "description": "Tarjetas del catálogo. `foto_principal` nunca es null.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "pm.test(\"Toda tarjeta trae foto_principal\", () => lista.forEach(p => pm.expect(p.foto_principal).to.be.a(\"string\")));",
+                  "if (lista.length) pm.collectionVariables.set(\"producto_id\", lista[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Catálogo filtrado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo?categoria_id=2&q=cuarzo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "categoria_id",
+                  "value": "2",
+                  "description": "2 = Pulseras"
+                },
+                {
+                  "key": "q",
+                  "value": "cuarzo",
+                  "description": "búsqueda por nombre"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Categorías del catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo/categorias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo",
+                "categorias"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ficha de producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo/{{producto_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo",
+                "{{producto_id}}"
+              ]
+            },
+            "description": "`tiene_variantes:false` = no mostrar selector. 404 si está despublicado.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "3. Envío (público)",
+      "description": "Para el checkout, sin login.",
+      "item": [
+        {
+          "name": "Distritos con costo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/envio/distritos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envio",
+                "distritos"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Costo de envío de un distrito",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/envio/costo?distrito_id={{distrito_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "envio",
+                "costo"
+              ],
+              "query": [
+                {
+                  "key": "distrito_id",
+                  "value": "{{distrito_id}}"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "auth": {
+        "type": "noauth"
+      }
+    },
+    {
+      "name": "4. Panel: productos 🔒",
+      "description": "Requiere haber ejecutado **1. Auth / Login**.",
+      "item": [
+        {
+          "name": "Categorías (desplegable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/categorias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categorias"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listado del panel",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos?q=&categoria_id=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "description": "búsqueda por nombre (opcional)"
+                },
+                {
+                  "key": "categoria_id",
+                  "value": "",
+                  "description": "opcional"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos"
+              ]
+            },
+            "description": "Nace despublicado y con la variante \"Única\". Guarda el id en `{{producto_id}}`. ⚠️ Escribe en la base del entorno elegido. No hay borrado de productos: despublícalo al terminar.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoria_id\": 4,\n  \"nombre\": \"Anillo de prueba QA\",\n  \"descripcion\": \"Producto creado desde Postman para pruebas.\",\n  \"precio_base\": \"40.00\",\n  \"material\": \"Plata 925\",\n  \"medidas\": \"Piedra de 8 × 10 mm\",\n  \"es_pieza_natural\": true,\n  \"existencias\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"producto_id\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear producto sin obligatorios (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos"
+              ]
+            },
+            "description": "Debe responder 422 listando categoria_id, descripcion y precio_base.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Incompleto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}"
+              ]
+            },
+            "description": "No cambia `publicado`. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoria_id\": 4,\n  \"nombre\": \"Anillo de prueba QA\",\n  \"descripcion\": \"Descripción editada desde Postman.\",\n  \"precio_base\": \"42.00\",\n  \"material\": \"Plata 925\",\n  \"medidas\": \"Piedra de 8 × 10 mm\",\n  \"es_pieza_natural\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/publicado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "publicado"
+              ]
+            },
+            "description": "409 si falta variante, o foto real cuando PUBLICAR_EXIGE_FOTO=true. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publicado\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Despublicar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/publicado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "publicado"
+              ]
+            },
+            "description": "Siempre se permite. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publicado\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Panel: variantes 🔒",
+      "description": "Usa `{{producto_id}}` y `{{variante_id}}`.",
+      "item": [
+        {
+          "name": "Variantes del producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/variantes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "variantes"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "const v = pm.response.json();",
+                  "if (v.length) pm.collectionVariables.set(\"variante_id\", v[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear variante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/variantes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "variantes"
+              ]
+            },
+            "description": "`precio: null` hereda el precio_base. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Turmalina negra\",\n  \"precio\": null,\n  \"existencias\": 2,\n  \"propiedades\": \"Se le atribuye protección.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"variante_id\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar variante (precio propio)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/variantes/{{variante_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "variantes",
+                "{{variante_id}}"
+              ]
+            },
+            "description": "Para la primera piedra, renombra la variante \"Única\". ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Amatista\",\n  \"precio\": \"45.00\",\n  \"existencias\": 3,\n  \"propiedades\": \"Se le atribuye calma.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stock: botón −1",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "variantes",
+                "{{variante_id}}",
+                "stock"
+              ]
+            },
+            "description": "Respuesta ligera. 409 si quedaría negativo. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cambio\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stock: cantidad exacta",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "variantes",
+                "{{variante_id}}",
+                "stock"
+              ]
+            },
+            "description": "⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"existencias\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar variante",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/variantes/{{variante_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "variantes",
+                "{{variante_id}}"
+              ]
+            },
+            "description": "204. 409 si es la última del producto o tiene pedidos. ⚠️ Escribe en la base del entorno elegido."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Panel: fotos 🔒",
+      "description": "JPG, PNG o WEBP; máx. 5 MB y 5 fotos por producto.",
+      "item": [
+        {
+          "name": "Subir foto",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/imagenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "imagenes"
+              ]
+            },
+            "description": "En Body → form-data, elige el archivo en el campo `foto` (tipo File). La primera queda como principal. ⚠️ Escribe en la base del entorno elegido. (y en Supabase Storage)",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "foto",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"imagen_id\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar como principal",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}/principal",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "imagenes",
+                "{{imagen_id}}",
+                "principal"
+              ]
+            },
+            "description": "⚠️ Escribe en la base del entorno elegido."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar foto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "imagenes",
+                "{{imagen_id}}"
+              ]
+            },
+            "description": "204. Si era la principal, pasa a serlo la siguiente. ⚠️ Escribe en la base del entorno elegido."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Panel: envíos 🔒",
+      "description": "Zonas con costo y distritos asignados (HU026).",
+      "item": [
+        {
+          "name": "Zonas de envío",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/zonas-envio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "zonas-envio"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear zona",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/zonas-envio",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "zonas-envio"
+              ]
+            },
+            "description": "⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Zona de prueba QA\",\n  \"costo\": \"10.00\",\n  \"activa\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"zona_id\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar zona",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/zonas-envio/{{zona_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "zonas-envio",
+                "{{zona_id}}"
+              ]
+            },
+            "description": "`activa: false` deja de atenderla sin borrarla. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Zona de prueba QA\",\n  \"costo\": \"12.00\",\n  \"activa\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asignar distritos a la zona",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/zonas-envio/{{zona_id}}/distritos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "zonas-envio",
+                "{{zona_id}}",
+                "distritos"
+              ]
+            },
+            "description": "⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"distrito_ids\": [\n    {{distrito_id}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Distritos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/distritos?sin_zona=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "distritos"
+              ],
+              "query": [
+                {
+                  "key": "sin_zona",
+                  "value": "true",
+                  "description": "solo los que no tienen cobertura"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear distrito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/distritos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "distritos"
+              ]
+            },
+            "description": "409 si el nombre ya existe. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Distrito de prueba QA\",\n  \"zona_envio_id\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"distrito_id\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar distrito (quitar cobertura)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/distritos/{{distrito_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "distritos",
+                "{{distrito_id}}"
+              ]
+            },
+            "description": "⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Distrito de prueba QA\",\n  \"zona_envio_id\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
