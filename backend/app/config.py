@@ -9,3 +9,5 @@ JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "30"))
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 # HU016: exigir al menos una foto para publicar. Activar cuando exista la subida de fotos (HU014 #4).
 PUBLICAR_EXIGE_FOTO = os.getenv("PUBLICAR_EXIGE_FOTO", "false").strip().lower() == "true"
+# HU024: base del enlace de recuperación de contraseña (pantalla /restablecer del frontend).
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
