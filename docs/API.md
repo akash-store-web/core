@@ -213,6 +213,48 @@ Ya están cargados los 43 distritos de Lima y 7 del Callao, todos **sin zona** h
 
 ---
 
+## Panel: pedidos 🔒 (HU017)
+
+**Estados del pedido** (acordados con el PO; el mismo texto viaja en `estado`):
+
+| `estado` | Significado | Etiqueta sugerida |
+|---|---|---|
+| `pendiente_pago` | Pedido creado; stock reservado hasta `reserva_vence` | Pendiente de pago |
+| `por_validar` | La clienta subió el comprobante | Por validar |
+| `confirmado` | Pago aprobado; se descontó el stock | Confirmado |
+| `rechazado` | Pago rechazado; no se descontó stock | Rechazado |
+| `enviado` | Despachado | Enviado |
+| `entregado` | Recibido por la clienta | Entregado |
+| `vencido` | La reserva venció sin pago | Vencido |
+
+### `GET /admin/pedidos?estado=&q=` — bandeja
+Del más reciente al más antiguo. `q` busca por número, nombre o teléfono; `estado` filtra (`422` si no es uno de la tabla).
+```json
+[{"id": 1, "numero": "AK-0001", "fecha": "2026-10-06T15:20:00Z", "clienta": "Ana Prueba", "telefono": "911111111",
+  "total": "140.00", "metodo_pago": "yape", "estado": "por_validar", "num_items": 3,
+  "tiene_comprobante": true, "reserva_vence": "2026-10-07T15:20:00Z"}]
+```
+
+### `GET /admin/pedidos/{id}` — detalle
+```json
+{"id": 1, "numero": "AK-0001", "fecha": "2026-10-06T15:20:00Z", "estado": "por_validar",
+ "clienta": {"nombre": "Ana Prueba", "telefono": "911111111", "correo": "clienta@ejemplo.com",
+             "direccion": "Av. Siempre Viva 123", "referencia": "Frente al parque"},
+ "distrito": "Miraflores", "modalidad_entrega": "delivery",
+ "items": [{"variante_id": 1, "producto_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
+            "cantidad": 2, "precio_unitario": "45.00", "subtotal": "90.00"}],
+ "subtotal": "130.00", "costo_envio": "10.00", "total": "140.00", "metodo_pago": "yape",
+ "comprobante_url": "...", "reserva_vence": "2026-10-07T15:20:00Z",
+ "historial": [{"estado": "pendiente_pago", "fecha": "...", "usuario": null},
+               {"estado": "por_validar", "fecha": "...", "usuario": null}]}
+```
+- `precio_unitario` es el **precio histórico** (el que pagó la clienta), aunque el producto cambie de precio después.
+- En `historial`, `usuario` es el email de quien hizo el cambio desde el panel; `null` = la clienta o el sistema.
+- Aún no hay pedidos reales: se crearán con `POST /pedidos` (HU010). Los botones aprobar/rechazar/enviado/entregado son HU018.
+- Los datos de la clienta son personales: no los copien en capturas ni en documentos.
+
+---
+
 ## Público: catálogo (sin login)
 
 Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas.
