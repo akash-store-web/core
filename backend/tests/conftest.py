@@ -4,6 +4,8 @@ import os
 os.environ["DATABASE_URL"] = "sqlite://"
 TEST_SECRET = "test-secret-only-at-least-32-bytes-long"
 os.environ["JWT_SECRET"] = TEST_SECRET
+# Aunque el .env local tenga la llave de Brevo, las pruebas nunca envían correos reales.
+os.environ["BREVO_API_KEY"] = ""
 
 import pytest
 from fastapi.testclient import TestClient

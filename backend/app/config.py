@@ -15,3 +15,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
 SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "productos")
+# HU024: correo con Brevo (API HTTP). CORREO_REMITENTE debe estar verificado en Brevo (Senders).
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+CORREO_REMITENTE = os.getenv("CORREO_REMITENTE", "")
+CORREO_REMITENTE_NOMBRE = os.getenv("CORREO_REMITENTE_NOMBRE", "Akash Store")

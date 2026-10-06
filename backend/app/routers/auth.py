@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app import config
@@ -39,13 +39,13 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)) -> TokenResp
 # --- HU024: recuperar el acceso ---
 
 @router.post("/recuperar", response_model=Mensaje, status_code=status.HTTP_202_ACCEPTED)
-def recuperar(datos: RecuperarRequest, db: Session = Depends(get_db)) -> Mensaje:
-    """Envía un enlace de un solo uso (30 min). Responde lo mismo exista o no el correo,
-    para no revelar qué correos tienen cuenta."""
+def recuperar(datos: RecuperarRequest, tareas: BackgroundTasks, db: Session = Depends(get_db)) -> Mensaje:
+    """Envía un enlace de un solo uso (30 min). Responde lo mismo, y igual de rápido, exista o no
+    el correo: el envío va en segundo plano para que el tiempo de respuesta no delate qué correos tienen cuenta."""
     user = db.query(Usuario).filter_by(email=datos.email.lower()).first()
     if user and user.activo:
         token = create_reset_token(user.id, user.password_hash)
-        enviar_enlace_recuperacion(user.email, f"{config.FRONTEND_URL}/restablecer?token={token}")
+        tareas.add_task(enviar_enlace_recuperacion, user.email, f"{config.FRONTEND_URL}/restablecer?token={token}")
     return Mensaje(detail=MENSAJE_RECUPERAR)
 
 
