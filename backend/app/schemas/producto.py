@@ -38,6 +38,12 @@ class ProductoCrear(ProductoIn):
     existencias: Annotated[int, Field(ge=0)] = Field(0, examples=[5])
 
 
+class PublicadoIn(BaseModel):
+    """HU016: interruptor Activo/Inactivo del listado del panel."""
+
+    publicado: bool = Field(examples=[True])
+
+
 class ImagenOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

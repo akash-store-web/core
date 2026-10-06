@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_admin
 from app.models.categoria import Categoria
-from app.schemas.producto import CategoriaOut, ProductoCrear, ProductoIn, ProductoListItem, ProductoOut
+from app.schemas.producto import CategoriaOut, ProductoCrear, ProductoIn, ProductoListItem, ProductoOut, PublicadoIn
 from app.services import productos as servicio
 
 router = APIRouter(prefix="/admin", tags=["admin: productos"], dependencies=[Depends(get_current_admin)])
@@ -33,3 +33,8 @@ def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
 @router.put("/productos/{producto_id}", response_model=ProductoOut)
 def actualizar_producto(producto_id: int, datos: ProductoIn, db: Session = Depends(get_db)):
     return servicio.actualizar_producto(db, producto_id, datos)
+
+
+@router.patch("/productos/{producto_id}/publicado", response_model=ProductoOut)
+def cambiar_publicado(producto_id: int, datos: PublicadoIn, db: Session = Depends(get_db)):
+    return servicio.cambiar_publicado(db, producto_id, datos.publicado)

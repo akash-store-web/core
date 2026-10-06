@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
+from app import config
 from app.models.categoria import Categoria
 from app.models.producto import Producto
 from app.models.variante import Variante
@@ -37,6 +38,27 @@ def actualizar_producto(db: Session, producto_id: int, datos: ProductoIn) -> Pro
     _validar_categoria(db, datos.categoria_id)
     for campo, valor in datos.model_dump().items():
         setattr(producto, campo, valor)
+    db.commit()
+    db.refresh(producto)
+    return producto
+
+
+def cambiar_publicado(db: Session, producto_id: int, publicado: bool) -> Producto:
+    """HU016: ocultar un producto del catálogo sin eliminarlo. Despublicar siempre se permite;
+    publicar exige que el producto esté completo para la clienta."""
+    producto = obtener_producto(db, producto_id)
+    if publicado:
+        faltantes = []
+        if not producto.variantes:
+            faltantes.append("al menos una variante")
+        if config.PUBLICAR_EXIGE_FOTO and not producto.imagenes:
+            faltantes.append("al menos una foto")
+        if faltantes:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "No se puede publicar: falta " + " y ".join(faltantes),
+            )
+    producto.publicado = publicado
     db.commit()
     db.refresh(producto)
     return producto
