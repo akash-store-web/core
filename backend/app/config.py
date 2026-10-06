@@ -11,3 +11,7 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o
 PUBLICAR_EXIGE_FOTO = os.getenv("PUBLICAR_EXIGE_FOTO", "false").strip().lower() == "true"
 # HU024: base del enlace de recuperación de contraseña (pantalla /restablecer del frontend).
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+# HU014 (AKASH-42): fotos de productos en Supabase Storage.
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "productos")
