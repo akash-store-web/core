@@ -118,6 +118,7 @@ JWT_EXPIRE_MINUTES=30
 CORS_ORIGINS=http://localhost:5173          # en Render: también la URL de Vercel, separadas por coma
 PUBLICAR_EXIGE_FOTO=false  # true = no se puede publicar un producto sin al menos una foto (HU016)
 FRONTEND_URL=http://localhost:5173          # base del enlace de recuperación de contraseña (HU024)
+FOTO_GENERICA_URL=         # opcional: por defecto, placeholders/producto.webp del bucket (productos sin foto)
 BREVO_API_KEY=             # API de Brevo para el correo de recuperación; vacía = el enlace va al log
 CORREO_REMITENTE=          # remitente verificado en Brevo (Senders)
 CORREO_REMITENTE_NOMBRE=Akash Store

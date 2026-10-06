@@ -22,7 +22,8 @@ class ProductoCatalogo(BaseModel):
     precio_desde: bool  # True si las variantes tienen precios distintos: mostrar "Desde S/ …"
     disponible: bool  # False = "Agotado" (todas sus variantes en 0)
     es_pieza_natural: bool
-    foto_principal: str | None
+    foto_principal: str  # nunca vacía: si no hay fotos reales, la imagen genérica
+    foto_generica: bool  # True = aún no tiene fotos reales
 
 
 class VariantePublica(BaseModel):

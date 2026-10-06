@@ -51,7 +51,11 @@ Un `422` de validación trae una lista; `loc[1]` es el campo con el problema:
 const mensaje = (detail) => Array.isArray(detail) ? detail.map(e => `${e.loc.at(-1)}: ${e.msg}`).join("\n") : detail;
 ```
 
-**Fotos que aún no existen.** Si `foto_principal` es `null` (o `imagenes` viene vacío), muestren la imagen genérica del repo: `frontend/public/placeholder-producto.webp` (800×800), es decir `src="/placeholder-producto.webp"`.
+**Fotos que aún no existen.** `foto_principal` **nunca viene vacía**: si el producto no tiene fotos reales, el backend envía la URL de la imagen genérica (800×800, en Supabase Storage) y `foto_generica: true`. Úsenla directo en el `<img>`. Usos de la bandera:
+- En el panel, mostrar un aviso "Falta subir fotos" cuando `foto_generica` sea `true`.
+- `imagenes` (lista de fotos reales) sí puede venir vacía: en la galería de la ficha, si está vacía, muestren solo `foto_principal`.
+- Como respaldo si una URL falla al cargar, el repo trae la misma imagen en `frontend/public/placeholder-producto.webp`:
+  `<img src={p.foto_principal} onError={(e) => (e.currentTarget.src = "/placeholder-producto.webp")} />`
 
 ---
 
@@ -106,7 +110,8 @@ Listado del panel; `q` busca por nombre sin distinguir mayúsculas.
 ```json
 [{"id": 1, "nombre": "Anillo de plata 925 con piedra", "categoria_id": 4, "categoria": "Anillos",
   "precio_base": "40.00", "publicado": true, "num_variantes": 2, "existencias_total": 4,
-  "agotado": false, "foto_principal": "https://<ref>.supabase.co/storage/v1/object/public/productos/1/abc.jpg"}]
+  "agotado": false, "foto_principal": "https://<ref>.supabase.co/storage/v1/object/public/productos/1/abc.jpg",
+  "foto_generica": false}]
 ```
 
 ### `POST /admin/productos` → `201`
@@ -135,6 +140,7 @@ Responde el producto (`publicado: false`, `imagenes: []`). **Todo producto nace 
 // 409: {"detail": "No se puede publicar: falta al menos una foto"}  (solo si PUBLICAR_EXIGE_FOTO=true)
 ```
 Despublicar siempre se permite y no borra nada. No existe borrado de productos.
+La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace falta al menos una foto real.
 
 ---
 
@@ -213,7 +219,7 @@ Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas
 ```json
 [{"id": 1, "nombre": "Anillo de plata 925 con piedra", "categoria_id": 4, "categoria": "Anillos",
   "precio": "40.00", "precio_desde": true, "disponible": true, "es_pieza_natural": true,
-  "foto_principal": "https://...jpg"}]
+  "foto_principal": "https://...jpg", "foto_generica": false}]
 ```
 - `precio_desde: true` → mostrar **"Desde S/ 40.00"** (HU002).
 - `disponible: false` → etiqueta **"Agotado"** y botón de compra deshabilitado (HU003); el producto se sigue mostrando.

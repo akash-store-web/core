@@ -83,4 +83,5 @@ class ProductoListItem(BaseModel):
     num_variantes: int
     existencias_total: int
     agotado: bool
-    foto_principal: str | None
+    foto_principal: str  # nunca vacía: si no hay fotos reales, la imagen genérica
+    foto_generica: bool  # True = falta subir fotos reales (útil como aviso en el panel)

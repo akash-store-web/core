@@ -19,3 +19,9 @@ SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "productos")
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 CORREO_REMITENTE = os.getenv("CORREO_REMITENTE", "")
 CORREO_REMITENTE_NOMBRE = os.getenv("CORREO_REMITENTE_NOMBRE", "Akash Store")
+# Imagen genérica para productos sin foto real: foto_principal nunca llega vacía al frontend.
+# No cuenta como foto para PUBLICAR_EXIGE_FOTO. Está subida en el bucket (placeholders/producto.webp).
+FOTO_GENERICA_URL = os.getenv("FOTO_GENERICA_URL") or (
+    f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/placeholders/producto.webp"
+    if SUPABASE_URL else "/placeholder-producto.webp"
+)
