@@ -135,3 +135,26 @@ def test_no_se_elimina_variante_con_pedidos(client, auth, engine):
         crear_pedido(db, "AK-0001", [(vid, 1, "25.00")])
     assert client.delete(f"{URL}/{vid}", headers=auth).status_code == 409
     assert len(client.get(URL, headers=auth).json()) == 2
+
+
+def test_precio_propio_no_cambia_si_cambia_el_precio_base(client, auth):
+    """HU027: el precio propio manda; solo las variantes sin precio siguen al precio base."""
+    _producto(client, auth, nombre="Anillo de plata 925", categoria_id=4, precio_base="40.00")
+    _variante(client, auth, nombre="Amatista", precio="45.00")
+    _variante(client, auth, nombre="Turmalina negra")
+    client.put("/admin/productos/1", headers=auth, json={
+        **PULSERA, "nombre": "Anillo de plata 925", "categoria_id": 4, "precio_base": "50.00"})
+    precios = {v["nombre"]: v["precio_efectivo"] for v in client.get(URL, headers=auth).json()}
+    assert precios["Amatista"] == "45.00"
+    assert precios["Turmalina negra"] == "50.00"
+
+
+def test_quitar_el_precio_propio_vuelve_a_heredar(client, auth):
+    _producto(client, auth)
+    variante = _variante(client, auth, nombre="Amatista", precio="45.00").json()
+    assert variante["precio_efectivo"] == "45.00"
+    respuesta = client.put(f"{URL}/{variante['id']}", headers=auth,
+                           json={"nombre": "Amatista", "precio": None, "existencias": 3})
+    assert respuesta.status_code == 200
+    assert respuesta.json()["precio"] is None
+    assert respuesta.json()["precio_efectivo"] == "25.00"
