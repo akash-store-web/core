@@ -1,0 +1,150 @@
+.EnvioIntro {
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.EnvioResumen {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.ZonaLista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  list-style: none;
+}
+
+.ZonaItem,
+.ZonaNueva {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+}
+
+.ZonaCabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ZonaNombre {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.ZonaCosto {
+  font-family: var(--font-title);
+  font-size: 28px;
+  letter-spacing: 1px;
+}
+
+.ZonaAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.EnvioBotones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.EnvioForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.EnvioCampo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.EnvioCampo label {
+  font-weight: 600;
+}
+
+.EnvioCampo input {
+  width: 100%;
+  height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.EnvioCampo input:focus {
+  outline: none;
+  border-color: var(--color-marron);
+  box-shadow: 0 0 0 3px var(--color-marmol-beige);
+}
+
+.EnvioInvalido {
+  border-color: var(--color-error) !important;
+}
+
+.EnvioAyuda {
+  font-size: 13px;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+.EnvioDistritos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.DistritoLista {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  list-style: none;
+}
+
+.DistritoFila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-marmol-claro);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.DistritoFila input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-marron);
+}
+
+.DistritoNombre {
+  flex: 1 1 140px;
+  font-weight: 600;
+}
