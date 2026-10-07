@@ -1,39 +1,84 @@
-import React from 'react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import './Login.css';
 import EmailInput from './EmailInput/EmailInput.jsx';
 import PassInput from './PassInput/PassInput.jsx';
-import { useNavigate } from 'react-router-dom';
+import { validateEmail } from '../../../utils/validators.js';
+import { login } from '../../../services/authService.js';
+import logo from '../../../assets/logo.png';
 
 function Login() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    if (loading) return;
+
+    if (!validateEmail(email) || !password) {
+      setError('Ingresa un correo válido y tu contraseña.');
+      return;
     }
-    
-  return(
-    <div className="LoginBackground">
-        <div className="LoginContainer">
-                <div className="LoginLogo"> <img src="./src/assets/logo.png" /> </div>
-            <div className="LoginTitleContainer">
 
-                <div className="LoginTitle">Akash Store</div>
-                <div className="LoginSubtitle">Panel de Admin
-                </div>
-            </div>
+    setError('');
+    setLoading(true);
 
-            <form className="LoginForm">
-                <EmailInput placeholder="Email"/>
-                <PassInput placeholder="Password"/>
+    try {
+      await login(email.trim().toLowerCase(), password);
+      navigate('/adminPanel', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-                <button type="submit" className="LoginButton">Ingresar</button>
-                <div className="Repair"> <a href="#">¿Olvidaste tu contraseña?</a></div>
-            </form>
+  return (
+    <div className="LoginPage">
+      <header className="LoginHeader">
+        <img src={logo} alt="Logo Akash Store" />
+        <span className="LoginHeaderName">Akash Store</span>
+      </header>
 
-        </div>
+      <main className="LoginMain">
+        <section className="LoginCard">
+          <h1 className="LoginTitle">Inicia sesión</h1>
+          <p className="LoginSubtitle">Panel de administración</p>
+
+          <form className="LoginForm" onSubmit={handleSubmit} noValidate>
+            <EmailInput
+              placeholder="Correo electrónico"
+              value={email}
+              onChange={setEmail}
+            />
+            <PassInput
+              placeholder="Contraseña"
+              value={password}
+              onChange={setPassword}
+            />
+
+            {error && <p className="LoginError" role="alert">{error}</p>}
+
+            <button type="submit" className="LoginButton" disabled={loading}>
+              {loading ? 'Ingresando...' : 'Ingresar'}
+            </button>
+            <Link to="/recuperar" className="LoginForgot">¿Olvidaste tu contraseña?</Link>
+          </form>
+        </section>
+
+        <aside className="LoginBrand">
+          <img src={logo} alt="" className="LoginBrandLogo" />
+          <h2 className="LoginBrandTitle">Akash Store</h2>
+          <p className="LoginBrandText">
+            Administra tus productos, precios y pedidos desde un solo lugar.
+          </p>
+        </aside>
+      </main>
     </div>
-
-    
-    );}
+  );
+}
 
 export default Login;

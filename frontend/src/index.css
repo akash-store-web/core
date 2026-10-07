@@ -4,10 +4,21 @@
   --color-blanco: #FFFFFF;
   --color-marmol-claro: #E9E9E7;
   --color-marmol-beige: #DDD6D1;
+
+  /* Provisional: la guía de estilos no define color de error. Confirmar con diseño. */
+  --color-error: #B3261E;
+
+  --font-title: 'Bebas Neue', sans-serif;
+  --font-ui: 'Inter', sans-serif;
 }
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-ui);
+  color: var(--color-marron);
 }

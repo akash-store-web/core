@@ -1,52 +1,33 @@
-import React from 'react';
+import { useState } from 'react';
 import './EmailInput.css';
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons';
+import { validateEmail } from '../../../../utils/validators.js';
 
-function EmailInput({placeholder}) {
+function EmailInput({ placeholder, value, onChange }) {
+  const [touched, setTouched] = useState(false);
 
-  const [isValid, setIsValid] = React.useState(true);
-  const [borderColor, setBorderColor] = React.useState('purple');
-  const [email, setEmail] = React.useState('');
-
-  const handleChange = (e) => {
-    const newText = e.target.value;
-    setEmail(newText);
-
-    setIsValid((prevIsValid) => {
-      const isValidEmail = validateEmail(newText);
-      setBorderColor(isValidEmail ? 'green' : 'purple');
-      return isValidEmail;
-    });
-    function validateEmail(email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    }}
-
-    console.log(isValid);
+  const showError = touched && value !== '' && !validateEmail(value);
 
   return (
-    <div className="EmailInputRoot">
-      <div className="EmailIcon">
-        <FontAwesomeIcon icon={faEnvelope} />
+    <div className="EmailInputWrapper">
+      <div className="EmailInputRoot">
+        <span className="EmailIcon">
+          <FontAwesomeIcon icon={faEnvelope} />
+        </span>
+        <input
+          className={`EmailInputContainer ${showError ? 'is-invalid' : ''}`}
+          type="email"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={() => setTouched(true)}
+          aria-invalid={showError}
+        />
       </div>
-      <input className="EmailInputContainer" 
-      type="email" 
-      placeholder={placeholder}
-      value={email}
-      onChange={handleChange}
-      style={{ borderColor: borderColor }}
-      onBlur={() => {
-        setBorderColor('purple');}}
-       onFocus={() => {
-        if (isValid) {
-          setBorderColor('green');
-        }}}
-       
-       />
-       
+      {showError && <p className="EmailError">Ingresa un correo válido.</p>}
     </div>
   );
 }
+
 export default EmailInput;
