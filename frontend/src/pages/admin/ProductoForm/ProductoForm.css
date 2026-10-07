@@ -1,0 +1,319 @@
+.FormCabecera {
+  margin-bottom: 16px;
+}
+
+.FormVolver {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--color-marron);
+  font-size: 14px;
+}
+
+.FormTitulo {
+  font-family: var(--font-title);
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+
+.FormProducto {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.FormSeccion {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 20px 16px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+}
+
+.FormSeccion legend {
+  padding: 0 8px;
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+
+.Campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.Campo label {
+  font-weight: 600;
+}
+
+.CampoObligatorio {
+  color: var(--color-error);
+}
+
+.Campo input[type='text'],
+.Campo select,
+.Campo textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.Campo textarea {
+  resize: vertical;
+}
+
+.Campo input:focus,
+.Campo select:focus,
+.Campo textarea:focus {
+  outline: none;
+  border-color: var(--color-marron);
+  box-shadow: 0 0 0 3px var(--color-marmol-beige);
+}
+
+/* Escenario 2: el campo faltante se señala en rojo */
+.campo-invalido {
+  border-color: var(--color-error) !important;
+  box-shadow: 0 0 0 1px var(--color-error);
+}
+
+.CampoError {
+  color: var(--color-error);
+  font-size: 13px;
+}
+
+.CampoAyuda {
+  font-size: 13px;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+.CampoFila {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.CampoCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.CampoCheck input {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--color-marron);
+}
+
+/* Fotografías */
+.FotosAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.FotosAcciones.campo-invalido {
+  padding: 8px;
+}
+
+.FotosContador {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.FotosLista {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  list-style: none;
+}
+
+.FotoItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.FotoItem img {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 4px;
+  background-color: var(--color-marmol-beige);
+  object-fit: cover;
+}
+
+.FotoPrincipal {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.FotoBotones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.FotoBotones button,
+.VarianteFormTitulo button {
+  padding: 6px 10px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.FotoBotones button:hover,
+.VarianteFormTitulo button:hover {
+  background-color: var(--color-marmol-beige);
+}
+
+/* Variantes */
+.VariantesForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.VarianteForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-marmol-claro);
+}
+
+.VarianteFormTitulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+/* Botones y mensajes */
+.FormBotonPrimario {
+  height: 48px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.FormBotonPrimario:hover:not(:disabled) {
+  background-color: var(--color-negro-calido);
+}
+
+.FormBotonPrimario:disabled,
+.FormBotonSecundario:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.FormBotonSecundario {
+  align-self: flex-start;
+  height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--color-marron);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.FormBotonSecundario:hover:not(:disabled) {
+  background-color: var(--color-marmol-beige);
+}
+
+.FormAcciones {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.FormCancelar {
+  align-self: center;
+  color: var(--color-marron);
+  font-size: 14px;
+}
+
+.FormNota {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.FormErrorGeneral {
+  padding: 12px 16px;
+  border: 1px solid var(--color-error);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-error);
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.FormErrorGeneral a {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-marron);
+}
+
+@media (min-width: 768px) {
+  .FormSeccion {
+    padding: 24px;
+  }
+
+  .CampoFila {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .FotosLista {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .FormAcciones {
+    flex-direction: row;
+    align-items: center;
+  }
+}
