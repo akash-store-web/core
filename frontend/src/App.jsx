@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Login from './pages/admin/Login/Login.jsx';
-import RecuperarContrasena from './pages/admin/RecuperarContraseña/RecuperarContraseña.jsx';
-import RestablecerContrasena from './pages/admin/RestablecerContraseña/RestablecerContraseña.jsx';
+import RecuperarContrasena from "./pages/admin/RecuperarContrasena/RecuperarContrasena.jsx";
+import RestablecerContrasena from "./pages/admin/RestablecerContrasena/RestablecerContrasena.jsx";
 import PanelAdmin from './pages/admin/PanelAdmin/PanelAdmin.jsx';
 import ProductoForm from './pages/admin/ProductoForm/ProductoForm.jsx';
 import EnviosAdmin from './pages/admin/Envios/EnviosAdmin.jsx';
