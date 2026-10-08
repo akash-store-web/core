@@ -1,0 +1,325 @@
+.PanelCabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.PanelTitulo {
+  font-family: var(--font-title);
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: 1px;
+}
+
+.PanelBotonPrimario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.PanelBotonPrimario:hover {
+  background-color: var(--color-negro-calido);
+}
+
+.PanelBotonSecundario {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-marron);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.PanelBotonSecundario:hover {
+  background-color: var(--color-marmol-beige);
+}
+
+.PanelAviso {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-marron);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.PanelAviso button {
+  border: none;
+  background: transparent;
+  color: var(--color-marron);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.PanelFiltros {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.PanelBuscador,
+.PanelSelect {
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.PanelBuscador:focus,
+.PanelSelect:focus {
+  outline: none;
+  border-color: var(--color-marron);
+  box-shadow: 0 0 0 3px var(--color-marmol-beige);
+}
+
+.PanelEstado {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+.PanelError {
+  margin: 8px 0;
+  color: var(--color-error);
+  font-size: 13px;
+  white-space: pre-line;
+}
+
+.ProductoLista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.ProductoItem {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+}
+
+.ProductoFoto {
+  width: 72px;
+  height: 72px;
+  border-radius: 4px;
+  background-color: var(--color-marmol-beige);
+  object-fit: cover;
+}
+
+.ProductoNombre {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ProductoMeta {
+  margin-top: 2px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.ProductoEtiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.Etiqueta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.Etiqueta--alerta {
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+}
+
+.Etiqueta--aviso {
+  background-color: var(--color-marmol-beige);
+  color: var(--color-marron);
+}
+
+.ProductoAcciones {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ProductoFilaCompleta {
+  grid-column: 1 / -1;
+}
+
+.InterruptorFila {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.Interruptor {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--color-marmol-beige);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.Interruptor--on {
+  background-color: var(--color-marron);
+}
+
+.Interruptor:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.Interruptor:focus-visible {
+  outline: 3px solid var(--color-marmol-beige);
+  outline-offset: 2px;
+}
+
+.InterruptorPunto {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--color-blanco);
+  transition: transform 0.2s;
+}
+
+.Interruptor--on .InterruptorPunto {
+  transform: translateX(20px);
+}
+
+.VarianteLista {
+  list-style: none;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.VarianteFila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-marmol-claro);
+  font-size: 14px;
+}
+
+.VarianteNombre {
+  flex: 1 1 140px;
+  font-weight: 600;
+}
+
+@media (min-width: 768px) {
+  .PanelFiltros {
+    grid-template-columns: 1fr 240px;
+  }
+
+  .ProductoItem {
+    grid-template-columns: 72px 1fr auto;
+    align-items: center;
+  }
+
+  .ProductoAcciones {
+    grid-column: auto;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+}/* HU015: control de existencias en la fila */
+.VariantePrecio {
+  font-size: 14px;
+}
+
+.StockControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.StockControl button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-marron);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-marron);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.StockControl button:hover:not(:disabled) {
+  background-color: var(--color-marmol-beige);
+}
+
+.StockControl button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.StockControl input {
+  width: 64px;
+  height: 44px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.StockControl input:focus {
+  outline: none;
+  border-color: var(--color-marron);
+  box-shadow: 0 0 0 3px var(--color-marmol-beige);
+}
+
+.VarianteError {
+  flex-basis: 100%;
+}

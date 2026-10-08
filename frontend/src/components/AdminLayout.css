@@ -1,0 +1,102 @@
+.AdminPage {
+  min-height: 100vh;
+  background-color: var(--color-marmol-claro);
+}
+
+.AdminHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--color-blanco);
+  border-bottom: 1px solid var(--color-marmol-beige);
+}
+
+.AdminMarca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-marron);
+  text-decoration: none;
+}
+
+.AdminMarca img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.AdminMarca span {
+  font-family: var(--font-title);
+  font-size: 26px;
+  letter-spacing: 1px;
+}
+
+.AdminMarca small {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--color-marmol-beige);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.AdminSalir {
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--color-marron);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.AdminSalir:hover {
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.AdminMain {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}/* Navegación entre secciones del panel */
+.AdminHeader {
+  flex-wrap: wrap;
+}
+
+.AdminNav {
+  display: flex;
+  gap: 8px;
+  order: 3;
+  width: 100%;
+}
+
+.AdminNav a {
+  padding: 8px 14px;
+  border-radius: 4px;
+  color: var(--color-marron);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.AdminNav a:hover {
+  background-color: var(--color-marmol-claro);
+}
+
+.AdminNav a.active {
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+@media (min-width: 768px) {
+  .AdminNav {
+    order: 0;
+    width: auto;
+  }
+}

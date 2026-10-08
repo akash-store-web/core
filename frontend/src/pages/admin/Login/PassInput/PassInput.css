@@ -1,45 +1,43 @@
-.PassInputContainer{
-font-size: 16px;
-padding: 12px;
-padding-left: 40px;
-border-radius: 4px;
-outline: none;
-border: 1px solid rgb(175, 175, 175);
-font-family: 'Poppins', sans-serif;
-width: 100%;
-
-
+.PassInputRoot {
+  position: relative;
 }
 
-.PassInputContainer:focus{
-    border: 2px solid purple;
-    color: purple;
-
+.PassIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-marron);
+  pointer-events: none;
 }
 
-.PassInputRoot:focus-within .PassIcon{
-    color: purple;
-    opacity: 0.7
+.PassInputContainer {
+  width: 100%;
+  height: 48px;
+  padding: 0 48px 0 44px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px;
 }
 
-.PassInputRoot{
-    position: relative;
+.PassInputContainer:focus {
+  outline: none;
+  border-color: var(--color-marron);
+  box-shadow: 0 0 0 3px var(--color-marmol-beige);
 }
 
-.PassIcon{
-    position: absolute;
-    left: 10px; 
-   top: 14px;
-    font-size: 16px;
-    color: rgb(175, 175, 175);
-}
-
-
-.eyeIcon{
-    position: absolute;
-    right: 10px; 
-   top: 11px;
-    font-size: 16px;
-    color: rgb(175, 175, 175);
-    cursor: pointer;
+.eyeIcon {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--color-marron);
+  cursor: pointer;
 }
