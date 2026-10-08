@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.imagen import Imagen
 from app.services import storage
+from app.services.optimizar_imagen import optimizar
 from app.services.productos import obtener_producto
 
 log = logging.getLogger("akash.imagenes")
@@ -45,6 +46,7 @@ def subir_imagen(db: Session, producto_id: int, contenido: bytes) -> Imagen:
     if tipo is None:
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, "Solo se aceptan fotos JPG, PNG o WEBP")
 
+    contenido, tipo = optimizar(contenido, tipo)
     ruta = f"{producto_id}/{uuid.uuid4().hex}.{TIPOS[tipo]}"
     try:
         url = storage.subir(ruta, contenido, tipo)
