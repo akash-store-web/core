@@ -10,4 +10,5 @@ python-dotenv
 pytest
 httpx
 python-multipart
+openpyxl
 pillow
