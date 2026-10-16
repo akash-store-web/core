@@ -32,10 +32,8 @@ class ProductoIn(BaseModel):
 
 
 class ProductoCrear(ProductoIn):
-    """Alta de producto. Todo producto nace con la variante "Única" (HU027 #3): si no tiene piedras
-    o aromas, funciona con esa única existencia; si los tiene, se renombra y se agregan las demás."""
-
-    existencias: Annotated[int, Field(ge=0)] = Field(0, examples=[5])
+    """Alta de producto. Nace con la variante "Única" (HU027 #3) y existencias 0: el stock entra solo
+    por compras (HU033) o ajustes con motivo (HU034). Si llega `existencias`, se ignora."""
 
 
 class PublicadoIn(BaseModel):

@@ -2,6 +2,7 @@ from app.models.categoria import Categoria
 from app.models.cliente import Cliente
 from app.models.distrito import Distrito
 from app.models.imagen import Imagen
+from app.models.movimiento_stock import MovimientoStock
 from app.models.pedido import DetallePedido, HistorialEstadoPedido, Pedido
 from app.models.producto import Producto
 from app.models.usuario import Usuario

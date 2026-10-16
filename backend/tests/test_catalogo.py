@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.models.imagen import Imagen
+from tests.fabricas import dar_stock
 
 ANILLO = {
     "categoria_id": 4,
@@ -12,19 +13,20 @@ ANILLO = {
     "material": "Plata 925",
     "medidas": "Piedra de 8 × 10 mm",
     "es_pieza_natural": True,
-    "existencias": 3,
 }
 SPRAY = {
     "categoria_id": 6,
     "nombre": "Spray áurico",
     "descripcion": "Spray de 60 ml con agua floral y aceites esenciales.",
     "precio_base": "25.00",
-    "existencias": 2,
 }
 
 
-def _crear(client, auth, datos, publicar=True):
+def _crear(client, auth, datos, publicar=True, stock=2):
     pid = client.post("/admin/productos", json=datos, headers=auth).json()["id"]
+    if stock:
+        unica = client.get(f"/admin/productos/{pid}/variantes", headers=auth).json()[0]["id"]
+        dar_stock(client, auth, unica, stock)
     if publicar:
         assert client.patch(f"/admin/productos/{pid}/publicado", json={"publicado": True}, headers=auth).status_code == 200
     return pid
@@ -32,11 +34,11 @@ def _crear(client, auth, datos, publicar=True):
 
 def _anillo_con_dos_precios(client, auth):
     """Caso real: S/ 45 en amatista y S/ 40 en turmalina."""
-    pid = _crear(client, auth, ANILLO, publicar=False)
+    pid = _crear(client, auth, ANILLO, publicar=False, stock=3)
     unica = client.get(f"/admin/productos/{pid}/variantes", headers=auth).json()[0]["id"]
-    client.put(f"/admin/productos/{pid}/variantes/{unica}",
-               json={"nombre": "Amatista", "precio": "45.00", "existencias": 3}, headers=auth)
-    client.post(f"/admin/productos/{pid}/variantes", json={"nombre": "Turmalina negra", "existencias": 2}, headers=auth)
+    client.put(f"/admin/productos/{pid}/variantes/{unica}", json={"nombre": "Amatista", "precio": "45.00"}, headers=auth)
+    turmalina = client.post(f"/admin/productos/{pid}/variantes", json={"nombre": "Turmalina negra"}, headers=auth).json()
+    dar_stock(client, auth, turmalina["id"], 2)
     client.patch(f"/admin/productos/{pid}/publicado", json={"publicado": True}, headers=auth)
     return pid
 
@@ -78,14 +80,14 @@ def test_precio_desde_con_variantes_de_distinto_precio(client, auth):
 def test_agotado_cuando_todas_las_variantes_llegan_a_cero(client, auth):
     pid = _crear(client, auth, SPRAY)
     variante = client.get(f"/admin/productos/{pid}/variantes", headers=auth).json()[0]["id"]
-    client.patch(f"/admin/variantes/{variante}/stock", json={"existencias": 0}, headers=auth)
+    dar_stock(client, auth, variante, -2, "Se agotó")
     assert client.get("/catalogo").json()[0]["disponible"] is False  # se sigue mostrando, como "Agotado"
 
 
 def test_ficha_con_variantes_y_una_agotada(client, auth):
     pid = _anillo_con_dos_precios(client, auth)
     turmalina = client.get(f"/admin/productos/{pid}/variantes", headers=auth).json()[1]["id"]
-    client.patch(f"/admin/variantes/{turmalina}/stock", json={"cambio": -2}, headers=auth)
+    dar_stock(client, auth, turmalina, -2, "Se agotó")
 
     ficha = client.get(f"/catalogo/{pid}").json()
     assert ficha["tiene_variantes"] is True
@@ -141,7 +143,7 @@ def test_solo_disponibles_oculta_los_agotados(client, auth):
     spray = _crear(client, auth, SPRAY)
     _anillo_con_dos_precios(client, auth)
     variante = client.get(f"/admin/productos/{spray}/variantes", headers=auth).json()[0]["id"]
-    client.patch(f"/admin/variantes/{variante}/stock", json={"existencias": 0}, headers=auth)
+    dar_stock(client, auth, variante, -2, "Se agotó")
 
     todos = [p["nombre"] for p in client.get("/catalogo").json()]
     disponibles = [p["nombre"] for p in client.get("/catalogo", params={"solo_disponibles": True}).json()]

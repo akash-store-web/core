@@ -677,7 +677,7 @@
             "description": "Nace despublicado y con la variante \"Única\". Guarda el id en `{{producto_id}}`. ⚠️ Escribe en la base del entorno elegido. No hay borrado de productos: despublícalo al terminar.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"categoria_id\": 4,\n  \"nombre\": \"Anillo de prueba QA\",\n  \"descripcion\": \"Producto creado desde Postman para pruebas.\",\n  \"precio_base\": \"40.00\",\n  \"material\": \"Plata 925\",\n  \"medidas\": \"Piedra de 8 × 10 mm\",\n  \"es_pieza_natural\": true,\n  \"existencias\": 3\n}",
+              "raw": "{\n  \"categoria_id\": 4,\n  \"nombre\": \"Anillo de prueba QA\",\n  \"descripcion\": \"Producto creado desde Postman para pruebas.\",\n  \"precio_base\": \"40.00\",\n  \"material\": \"Plata 925\",\n  \"medidas\": \"Piedra de 8 × 10 mm\",\n  \"es_pieza_natural\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -958,7 +958,7 @@
             "description": "`precio: null` hereda el precio_base. ⚠️ Escribe en la base del entorno elegido.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Turmalina negra\",\n  \"precio\": null,\n  \"existencias\": 2,\n  \"propiedades\": \"Se le atribuye protección.\"\n}",
+              "raw": "{\n  \"nombre\": \"Turmalina negra\",\n  \"precio\": null,\n  \"propiedades\": \"Se le atribuye protección.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1026,9 +1026,9 @@
           ]
         },
         {
-          "name": "Stock: botón −1",
+          "name": "Ajuste de stock con motivo",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
@@ -1036,7 +1036,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/stock",
+              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/ajustes",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1044,19 +1044,50 @@
                 "admin",
                 "variantes",
                 "{{variante_id}}",
-                "stock"
+                "ajustes"
               ]
             },
-            "description": "Respuesta ligera. 409 si quedaría negativo. ⚠️ Escribe en la base del entorno elegido.",
+            "description": "HU034: cantidad con signo y motivo obligatorio. 409 si quedaría negativo. ⚠️ Escribe en la base del entorno elegido.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cambio\": -1\n}",
+              "raw": "{\n  \"cantidad\": -1,\n  \"motivo\": \"Se rompió al empacar (prueba QA)\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial de la variante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "variantes",
+                "{{variante_id}}",
+                "movimientos"
+              ]
+            },
+            "description": ""
           },
           "event": [
             {
@@ -1071,37 +1102,23 @@
           ]
         },
         {
-          "name": "Stock: cantidad exacta",
+          "name": "Historial del producto",
           "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/stock",
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/movimientos",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "admin",
-                "variantes",
-                "{{variante_id}}",
-                "stock"
+                "productos",
+                "{{producto_id}}",
+                "movimientos"
               ]
             },
-            "description": "⚠️ Escribe en la base del entorno elegido.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"existencias\": 10\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": ""
           },
           "event": [
             {

@@ -30,3 +30,11 @@ def crear_pedido(db: Session, numero: str, items: list[tuple[int, int, str]], es
     db.commit()
     db.refresh(pedido)
     return pedido
+
+
+def dar_stock(client, auth, variante_id: int, cantidad: int, motivo: str = "Stock de prueba") -> dict:
+    """HU034: en las pruebas el stock entra (o sale) con un ajuste con motivo, nunca a mano."""
+    respuesta = client.post(f"/admin/variantes/{variante_id}/ajustes",
+                            json={"cantidad": cantidad, "motivo": motivo}, headers=auth)
+    assert respuesta.status_code == 201, respuesta.text
+    return respuesta.json()

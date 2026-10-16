@@ -3,6 +3,7 @@ import pytest
 
 from app import config
 from app.services import storage
+from tests.fabricas import dar_stock
 
 JPG = b"\xff\xd8\xff\xe0" + b"0" * 100
 COLLAR = {
@@ -20,9 +21,11 @@ EDITABLES = {k: v for k, v in COLLAR.items()}
 @pytest.fixture
 def collar(client, auth):
     """Collar publicado con dos variantes: Amatista (4 u.) y Cuarzo rosa (2 u.)."""
-    client.post("/admin/productos", json={**COLLAR, "existencias": 4}, headers=auth)
+    client.post("/admin/productos", json=COLLAR, headers=auth)
     client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista"}, headers=auth)
-    client.post("/admin/productos/1/variantes", json={"nombre": "Cuarzo rosa", "existencias": 2}, headers=auth)
+    client.post("/admin/productos/1/variantes", json={"nombre": "Cuarzo rosa"}, headers=auth)
+    dar_stock(client, auth, 1, 4)
+    dar_stock(client, auth, 2, 2)
     client.patch("/admin/productos/1/publicado", json={"publicado": True}, headers=auth)
     return 1
 

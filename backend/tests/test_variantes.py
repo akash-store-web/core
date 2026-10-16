@@ -21,7 +21,7 @@ def _producto(client, auth, **cambios):
 def _variante(client, auth, producto_id=1, **datos):
     return client.post(
         f"/admin/productos/{producto_id}/variantes",
-        json={"nombre": "Cuarzo rosa", "existencias": 3, **datos},
+        json={"nombre": "Cuarzo rosa", **datos},
         headers=auth,
     )
 
@@ -41,7 +41,7 @@ def test_crear_variante_hereda_precio_del_producto(client, auth):
     assert cuerpo["producto_id"] == 1
     assert cuerpo["precio"] is None
     assert cuerpo["precio_efectivo"] == "25.00"
-    assert cuerpo["existencias"] == 3
+    assert cuerpo["existencias"] == 0  # HU034: nace sin stock
     assert cuerpo["propiedades"] == "Amor propio y armonía"
 
 
@@ -61,7 +61,7 @@ def test_variante_sigue_al_precio_base_si_cambia(client, auth):
 
 
 def test_doce_piedras_de_la_pulsera(client, auth):
-    _producto(client, auth, existencias=3)
+    _producto(client, auth)
     piedras = ["Cuarzo rosa", "Ojo de tigre", "Pirita", "Turmalina negra", "Amatista", "Citrino",
                "Jade", "Howlita", "Piedra luna", "Lapislázuli", "Cuarzo ahumado", "Labradorita"]
     # La primera piedra reutiliza la variante "Única"; las demás se agregan.
@@ -71,7 +71,7 @@ def test_doce_piedras_de_la_pulsera(client, auth):
     assert [v["nombre"] for v in client.get(URL, headers=auth).json()] == piedras
     fila = client.get("/admin/productos", headers=auth).json()[0]
     assert fila["num_variantes"] == 12
-    assert fila["existencias_total"] == 36
+    assert fila["existencias_total"] == 0  # el stock entra después, por compras (HU033)
 
 
 def test_validaciones_de_variante(client, auth):
@@ -79,14 +79,14 @@ def test_validaciones_de_variante(client, auth):
     assert client.post(URL, json={}, headers=auth).status_code == 422
     assert _variante(client, auth, nombre="  ").status_code == 422
     assert _variante(client, auth, nombre="x" * 81).status_code == 422
-    assert _variante(client, auth, existencias=-1).status_code == 422
     assert _variante(client, auth, precio="0").status_code == 422
     assert _variante(client, auth, precio="-3").status_code == 422
 
 
-def test_existencias_por_defecto_cero(client, auth):
+def test_la_variante_nace_sin_stock_aunque_se_envien_existencias(client, auth):
+    """HU034: crear una variante no carga stock; si llega `existencias`, se ignora."""
     _producto(client, auth)
-    assert client.post(URL, json={"nombre": "Pirita"}, headers=auth).json()["existencias"] == 0
+    assert client.post(URL, json={"nombre": "Pirita", "existencias": 7}, headers=auth).json()["existencias"] == 0
 
 
 def test_producto_inexistente(client, auth):
@@ -101,7 +101,7 @@ def test_actualizar_variante(client, auth):
     assert respuesta.status_code == 200
     assert respuesta.json()["precio"] is None
     assert respuesta.json()["precio_efectivo"] == "25.00"
-    assert respuesta.json()["existencias"] == 3  # HU032: las existencias no se editan; se ignoran
+    assert respuesta.json()["existencias"] == 0  # HU032: las existencias no se editan; se ignoran
 
 
 def test_variante_de_otro_producto_no_se_toca(client, auth):
@@ -154,7 +154,7 @@ def test_quitar_el_precio_propio_vuelve_a_heredar(client, auth):
     variante = _variante(client, auth, nombre="Amatista", precio="45.00").json()
     assert variante["precio_efectivo"] == "45.00"
     respuesta = client.put(f"{URL}/{variante['id']}", headers=auth,
-                           json={"nombre": "Amatista", "precio": None, "existencias": 3})
+                           json={"nombre": "Amatista", "precio": None})
     assert respuesta.status_code == 200
     assert respuesta.json()["precio"] is None
     assert respuesta.json()["precio_efectivo"] == "25.00"

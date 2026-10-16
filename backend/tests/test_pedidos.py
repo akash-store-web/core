@@ -6,14 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.models.distrito import Distrito
 from app.models.pedido import EstadoPedido, HistorialEstadoPedido
-from tests.fabricas import crear_pedido
+from tests.fabricas import crear_pedido, dar_stock
 
 ANILLO = {
     "categoria_id": 4,
     "nombre": "Anillo de plata 925 con piedra",
     "descripcion": "Anillo de plata 925 con piedra natural facetada.",
     "precio_base": "40.00",
-    "existencias": 3,
 }
 AYER = datetime.now(timezone.utc) - timedelta(days=1)
 
@@ -22,8 +21,10 @@ AYER = datetime.now(timezone.utc) - timedelta(days=1)
 def pedidos(client, auth, engine):
     """Dos pedidos: AK-0001 (ayer, por validar, con comprobante) y AK-0002 (hoy, pendiente de pago)."""
     client.post("/admin/productos", json=ANILLO, headers=auth)
-    client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista", "precio": "45.00", "existencias": 3}, headers=auth)
-    client.post("/admin/productos/1/variantes", json={"nombre": "Turmalina negra", "existencias": 2}, headers=auth)
+    client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista", "precio": "45.00"}, headers=auth)
+    client.post("/admin/productos/1/variantes", json={"nombre": "Turmalina negra"}, headers=auth)
+    dar_stock(client, auth, 1, 3)
+    dar_stock(client, auth, 2, 2)
     with Session(engine) as db:
         db.add(Distrito(nombre="Miraflores"))
         db.commit()
@@ -82,7 +83,7 @@ def test_detalle_del_pedido(client, auth, pedidos):
 
 def test_el_detalle_conserva_el_precio_historico(client, auth, pedidos):
     """Si la propietaria cambia el precio después, el pedido muestra el que pagó la clienta."""
-    client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista", "precio": "60.00", "existencias": 3}, headers=auth)
+    client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista", "precio": "60.00"}, headers=auth)
     amatista = client.get("/admin/pedidos/1", headers=auth).json()["items"][0]
     assert amatista["precio_unitario"] == "45.00"
 

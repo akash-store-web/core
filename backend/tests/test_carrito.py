@@ -2,6 +2,7 @@
 import pytest
 
 from app.services import carrito as servicio_carrito
+from tests.fabricas import dar_stock
 
 ANILLO = {
     "categoria_id": 4,
@@ -9,7 +10,6 @@ ANILLO = {
     "descripcion": "Anillo de plata 925 con piedra natural facetada.",
     "precio_base": "40.00",
     "es_pieza_natural": True,
-    "existencias": 3,
 }
 URL = "/carrito/validar"
 
@@ -18,8 +18,10 @@ URL = "/carrito/validar"
 def anillo(client, auth):
     """Anillo publicado: variante 1 Amatista (S/ 45, 3 unidades) y variante 2 Turmalina (S/ 40, 2 unidades)."""
     client.post("/admin/productos", json=ANILLO, headers=auth)
-    client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista", "precio": "45.00", "existencias": 3}, headers=auth)
-    client.post("/admin/productos/1/variantes", json={"nombre": "Turmalina negra", "existencias": 2}, headers=auth)
+    client.put("/admin/productos/1/variantes/1", json={"nombre": "Amatista", "precio": "45.00"}, headers=auth)
+    client.post("/admin/productos/1/variantes", json={"nombre": "Turmalina negra"}, headers=auth)
+    dar_stock(client, auth, 1, 3)
+    dar_stock(client, auth, 2, 2)
     client.patch("/admin/productos/1/publicado", json={"publicado": True}, headers=auth)
 
 
@@ -56,7 +58,7 @@ def test_justo_el_stock_disponible_es_valido(client, anillo):
 
 
 def test_variante_agotada(client, auth, anillo):
-    client.patch("/admin/variantes/2/stock", json={"existencias": 0}, headers=auth)
+    dar_stock(client, auth, 2, -2, "Se agotó")
     cuerpo = _validar(client, (1, 1), (2, 1)).json()
     assert cuerpo["valido"] is False
     assert [i["estado"] for i in cuerpo["items"]] == ["ok", "agotado"]
@@ -80,7 +82,7 @@ def test_misma_variante_repetida_se_suma(client, anillo):
 
 
 def test_usa_el_precio_vigente(client, auth, anillo):
-    client.put("/admin/productos/1", json={**{k: v for k, v in ANILLO.items() if k != "existencias"}, "precio_base": "38.00"},
+    client.put("/admin/productos/1", json={**ANILLO, "precio_base": "38.00"},
                headers=auth)
     turmalina = _validar(client, (2, 1)).json()["items"][0]
     assert turmalina["precio_unitario"] == "38.00"  # hereda el nuevo precio base
