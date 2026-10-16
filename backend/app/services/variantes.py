@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.variante import Variante
-from app.schemas.variante import ExistenciasIn, VarianteIn
+from app.schemas.variante import ExistenciasIn, VarianteEditar, VarianteIn
 from app.services.productos import obtener_producto
 
 
@@ -29,7 +29,7 @@ def crear_variante(db: Session, producto_id: int, datos: VarianteIn) -> Variante
     return variante
 
 
-def actualizar_variante(db: Session, producto_id: int, variante_id: int, datos: VarianteIn) -> Variante:
+def actualizar_variante(db: Session, producto_id: int, variante_id: int, datos: VarianteEditar) -> Variante:
     variante = obtener_variante(db, producto_id, variante_id)
     for campo, valor in datos.model_dump().items():
         setattr(variante, campo, valor)

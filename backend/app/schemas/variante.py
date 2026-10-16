@@ -15,6 +15,15 @@ class VarianteIn(BaseModel):
     propiedades: Annotated[str, StringConstraints(strip_whitespace=True)] | None = Field(None, examples=["Amor propio y armonía"])
 
 
+class VarianteEditar(BaseModel):
+    """Edición de una variante (HU032): nombre, precio propio y propiedades.
+    Las existencias NO se editan aquí (HU032 escenario 4): si llegan, se ignoran."""
+
+    nombre: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)] = Field(examples=["Cuarzo rosa"])
+    precio: Precio | None = Field(None, examples=["32.00"])  # vacío = hereda el precio_base del producto
+    propiedades: Annotated[str, StringConstraints(strip_whitespace=True)] | None = Field(None, examples=["Amor propio y armonía"])
+
+
 class ExistenciasIn(BaseModel):
     """HU015: envía `cambio` (botones +/-, p. ej. -1) o `existencias` (cantidad exacta), no ambos."""
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_admin
-from app.schemas.variante import ExistenciasIn, StockOut, VarianteIn, VarianteOut
+from app.schemas.variante import ExistenciasIn, StockOut, VarianteEditar, VarianteIn, VarianteOut
 from app.services import variantes as servicio
 
 router = APIRouter(
@@ -24,7 +24,8 @@ def crear_variante(producto_id: int, datos: VarianteIn, db: Session = Depends(ge
 
 
 @router.put("/{variante_id}", response_model=VarianteOut)
-def actualizar_variante(producto_id: int, variante_id: int, datos: VarianteIn, db: Session = Depends(get_db)):
+def actualizar_variante(producto_id: int, variante_id: int, datos: VarianteEditar, db: Session = Depends(get_db)):
+    """HU032: cambia nombre, precio propio y propiedades. Las existencias no se editan aquí."""
     return servicio.actualizar_variante(db, producto_id, variante_id, datos)
 
 

@@ -61,11 +61,11 @@ def test_variante_sigue_al_precio_base_si_cambia(client, auth):
 
 
 def test_doce_piedras_de_la_pulsera(client, auth):
-    _producto(client, auth)
+    _producto(client, auth, existencias=3)
     piedras = ["Cuarzo rosa", "Ojo de tigre", "Pirita", "Turmalina negra", "Amatista", "Citrino",
                "Jade", "Howlita", "Piedra luna", "Lapislázuli", "Cuarzo ahumado", "Labradorita"]
     # La primera piedra reutiliza la variante "Única"; las demás se agregan.
-    client.put(f"{URL}/{UNICA}", json={"nombre": piedras[0], "existencias": 3}, headers=auth)
+    client.put(f"{URL}/{UNICA}", json={"nombre": piedras[0]}, headers=auth)
     for piedra in piedras[1:]:
         assert _variante(client, auth, nombre=piedra).status_code == 201
     assert [v["nombre"] for v in client.get(URL, headers=auth).json()] == piedras
@@ -101,7 +101,7 @@ def test_actualizar_variante(client, auth):
     assert respuesta.status_code == 200
     assert respuesta.json()["precio"] is None
     assert respuesta.json()["precio_efectivo"] == "25.00"
-    assert respuesta.json()["existencias"] == 5
+    assert respuesta.json()["existencias"] == 3  # HU032: las existencias no se editan; se ignoran
 
 
 def test_variante_de_otro_producto_no_se_toca(client, auth):
