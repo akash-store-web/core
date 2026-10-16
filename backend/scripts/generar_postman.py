@@ -183,7 +183,21 @@ items = [
         req("Editar distrito (quitar cobertura)", "PUT", "/admin/distritos/{{distrito_id}}",
             {"nombre": "Distrito de prueba QA", "zona_envio_id": None}, ESCRIBE, codigo(200)),
     ]),
-    carpeta("8. Panel: pedidos 🔒", "Bandeja y detalle de pedidos (HU017). Solo lectura.", [
+    carpeta("8. Panel: compras 🔒", "Compras de mercadería con comprobante (HU033): suman stock en una transacción.", [
+        req("Registrar compra", "POST", "/admin/compras", {
+            "proveedor": "Proveedor de prueba QA", "proveedor_ruc": "20512345678", "tipo_comprobante": "factura",
+            "numero_comprobante": "F001-QA001", "fecha": "2026-10-14",
+            "items": [{"variante_id": "{{variante_id}}", "cantidad": 2, "costo_unitario": "12.50"}]},
+            "Suma el stock de cada variante. 409 si el comprobante ya existe. " + ESCRIBE, guardar("compra_id")),
+        req("Listado de compras", "GET", "/admin/compras", eventos=codigo(200),
+            query=[{"key": "proveedor", "value": "", "description": "opcional"},
+                   {"key": "desde", "value": "", "description": "AAAA-MM-DD (opcional)"},
+                   {"key": "hasta", "value": "", "description": "AAAA-MM-DD (opcional)"}]),
+        req("Detalle de la compra", "GET", "/admin/compras/{{compra_id}}", eventos=codigo(200)),
+        req("Compras del producto", "GET", "/admin/productos/{{producto_id}}/compras",
+            descripcion="HU033 escenario 4: con qué compras ingresó su stock.", eventos=codigo(200)),
+    ]),
+    carpeta("9. Panel: pedidos 🔒", "Bandeja y detalle de pedidos (HU017). Solo lectura.", [
         req("Bandeja de pedidos", "GET", "/admin/pedidos",
             descripcion="Del más reciente al más antiguo. Estados: pendiente_pago, por_validar, confirmado, "
                         "rechazado, enviado, entregado, vencido.",
@@ -218,7 +232,7 @@ coleccion = {
     },
     "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]},
     "variable": [{"key": k, "value": v} for k, v in
-                 [("token", ""), ("producto_id", "1"), ("variante_id", "1"), ("imagen_id", "1"), ("zona_id", "1"), ("distrito_id", "1"), ("pedido_id", "1")]],
+                 [("token", ""), ("producto_id", "1"), ("variante_id", "1"), ("imagen_id", "1"), ("zona_id", "1"), ("distrito_id", "1"), ("pedido_id", "1"), ("compra_id", "1")]],
     "item": items,
 }
 

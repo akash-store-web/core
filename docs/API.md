@@ -200,6 +200,37 @@ Historial del más reciente al más antiguo, con el **saldo** después de cada m
 
 ---
 
+## Panel: compras de mercadería 🔒 (HU033)
+
+El stock **entra** por aquí: cada compra suma las existencias de sus variantes y deja un movimiento `compra` (HU034), todo en una sola transacción.
+
+### `POST /admin/compras` → `201`
+```json
+{"proveedor": "Minerales del Sur",          // obligatorio, 2 a 120 caracteres
+ "proveedor_ruc": "20512345678",            // opcional, 11 dígitos (las boletas pueden no tenerlo)
+ "tipo_comprobante": "factura",             // "boleta" | "factura"
+ "numero_comprobante": "F001-000123",       // se guarda en mayúsculas
+ "fecha": "2026-10-14",                     // fecha del comprobante; no puede ser futura
+ "items": [{"variante_id": 1, "cantidad": 10, "costo_unitario": "12.50"},   // costo obligatorio
+           {"variante_id": 2, "cantidad": 4,  "costo_unitario": "15.00"}]}  // cada variante una sola vez
+// 201: la compra con total ("185.00"), unidades (14), usuario e items con subtotal
+// 409 {"detail": "Ese comprobante de ese proveedor ya está registrado; no se volvió a sumar el stock"}
+// 422 campos inválidos o variante inexistente (no se guarda nada)
+```
+El duplicado se detecta por proveedor + tipo + número, sin distinguir mayúsculas. El archivo del comprobante (foto o PDF) se adjunta aparte (AKASH-115).
+
+### `GET /admin/compras?proveedor=&desde=&hasta=` · `GET /admin/compras/{id}`
+Listado del comprobante más reciente al más antiguo (`proveedor` busca por nombre; `desde` y `hasta` en formato `AAAA-MM-DD`) y detalle con sus líneas.
+
+### `GET /admin/productos/{id}/compras` — trazabilidad (HU033 escenario 4)
+Con qué compras ingresó el stock del producto:
+```json
+[{"compra_id": 2, "fecha": "2026-10-14", "proveedor": "Minerales del Sur", "tipo_comprobante": "factura",
+  "numero_comprobante": "F001-000200", "variante_id": 2, "variante": "Citrino", "cantidad": 6, "costo_unitario": "14.00"}]
+```
+
+---
+
 ## Panel: fotos 🔒 (HU014, AKASH-42)
 
 ### `POST /admin/productos/{id}/imagenes` → `201`

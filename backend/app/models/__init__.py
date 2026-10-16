@@ -1,5 +1,6 @@
 from app.models.categoria import Categoria
 from app.models.cliente import Cliente
+from app.models.compra import Compra, DetalleCompra
 from app.models.distrito import Distrito
 from app.models.imagen import Imagen
 from app.models.movimiento_stock import MovimientoStock
