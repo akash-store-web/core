@@ -49,13 +49,17 @@ def listar_categorias(db: Session) -> list[CategoriaPublica]:
     return [CategoriaPublica(id=c.id, nombre=c.nombre) for c in categorias]
 
 
-def listar_catalogo(db: Session, categoria_id: int | None = None, q: str | None = None) -> list[ProductoCatalogo]:
+def listar_catalogo(db: Session, categoria_id: int | None = None, q: str | None = None,
+                    solo_disponibles: bool = False) -> list[ProductoCatalogo]:
     consulta = _publicados(db).join(Producto.categoria).order_by(Categoria.orden, Producto.nombre)
     if categoria_id is not None:
         consulta = consulta.filter(Producto.categoria_id == categoria_id)
     if q and q.strip():
         consulta = consulta.filter(Producto.nombre.ilike(f"%{q.strip()}%"))
-    return [ProductoCatalogo(**_tarjeta(p)) for p in consulta.all()]
+    tarjetas = [ProductoCatalogo(**_tarjeta(p)) for p in consulta.all()]
+    if solo_disponibles:  # HU029: ocultar los agotados (los que no tienen ninguna variante con stock)
+        tarjetas = [t for t in tarjetas if t.disponible]
+    return tarjetas
 
 
 def obtener_ficha(db: Session, producto_id: int) -> FichaProducto:

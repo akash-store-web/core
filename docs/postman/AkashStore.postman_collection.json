@@ -343,7 +343,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/catalogo?categoria_id=2&q=cuarzo",
+              "raw": "{{baseUrl}}/catalogo?categoria_id=2&q=cuarzo&solo_disponibles=true",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -360,6 +360,11 @@
                   "key": "q",
                   "value": "cuarzo",
                   "description": "búsqueda por nombre"
+                },
+                {
+                  "key": "solo_disponibles",
+                  "value": "true",
+                  "description": "oculta los agotados (HU029)"
                 }
               ]
             },
