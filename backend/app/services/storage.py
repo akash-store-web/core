@@ -41,3 +41,39 @@ def borrar(ruta: str) -> None:
         timeout=30,
     )
     respuesta.raise_for_status()
+
+
+# AKASH-115: bucket PRIVADO de comprobantes. No hay URL publica: se guarda solo la ruta
+# y, para verlo, se pide un enlace temporal (firmado).
+def subir_privado(ruta: str, contenido: bytes, content_type: str) -> str:
+    respuesta = httpx.post(
+        f"{config.SUPABASE_URL}/storage/v1/object/{config.SUPABASE_BUCKET_COMPROBANTES}/{ruta}",
+        content=contenido,
+        headers=_headers({"Content-Type": content_type, "x-upsert": "false"}),
+        timeout=30,
+    )
+    respuesta.raise_for_status()
+    return ruta
+
+
+def url_firmada(ruta: str, segundos: int = 300) -> str:
+    respuesta = httpx.post(
+        f"{config.SUPABASE_URL}/storage/v1/object/sign/{config.SUPABASE_BUCKET_COMPROBANTES}/{ruta}",
+        json={"expiresIn": segundos},
+        headers=_headers(),
+        timeout=30,
+    )
+    respuesta.raise_for_status()
+    return f"{config.SUPABASE_URL}/storage/v1{respuesta.json()['signedURL']}"
+
+
+def borrar_privado(ruta: str) -> None:
+    respuesta = httpx.request(
+        "DELETE",
+        f"{config.SUPABASE_URL}/storage/v1/object/{config.SUPABASE_BUCKET_COMPROBANTES}",
+        json={"prefixes": [ruta]},
+        headers=_headers(),
+        timeout=30,
+    )
+    respuesta.raise_for_status()
+    
