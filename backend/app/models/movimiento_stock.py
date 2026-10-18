@@ -26,7 +26,7 @@ class MovimientoStock(Base):
     cantidad = Column(Integer, nullable=False)  # con signo: + entra, − sale
     saldo = Column(Integer, nullable=False)  # existencias de la variante después del movimiento
     motivo = Column(String(200))
-    compra_id = Column(Integer)  # FK a compra.id en la BD (HU033)
+    compra_id = Column(Integer, ForeignKey("compra.id"))  # HU033
     pedido_id = Column(Integer, ForeignKey("pedido.id"))
     usuario_id = Column(Integer, ForeignKey("usuario.id"))
     fecha = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

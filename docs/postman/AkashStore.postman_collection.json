@@ -42,6 +42,10 @@
     {
       "key": "pedido_id",
       "value": "1"
+    },
+    {
+      "key": "compra_id",
+      "value": "1"
     }
   ],
   "item": [
@@ -1561,7 +1565,236 @@
       ]
     },
     {
-      "name": "8. Panel: pedidos 🔒",
+      "name": "8. Panel: compras 🔒",
+      "description": "Compras de mercadería con comprobante (HU033): suman stock en una transacción.",
+      "item": [
+        {
+          "name": "Registrar compra",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras"
+              ]
+            },
+            "description": "Suma el stock de cada variante. 409 si el comprobante ya existe. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"proveedor\": \"Proveedor de prueba QA\",\n  \"proveedor_ruc\": \"20512345678\",\n  \"tipo_comprobante\": \"factura\",\n  \"numero_comprobante\": \"F001-QA001\",\n  \"fecha\": \"2026-10-14\",\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 2,\n      \"costo_unitario\": \"12.50\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"compra_id\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listado de compras",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras?proveedor=&desde=&hasta=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras"
+              ],
+              "query": [
+                {
+                  "key": "proveedor",
+                  "value": "",
+                  "description": "opcional"
+                },
+                {
+                  "key": "desde",
+                  "value": "",
+                  "description": "AAAA-MM-DD (opcional)"
+                },
+                {
+                  "key": "hasta",
+                  "value": "",
+                  "description": "AAAA-MM-DD (opcional)"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de la compra",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras/{{compra_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras",
+                "{{compra_id}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Adjuntar comprobante",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras/{{compra_id}}/comprobante",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras",
+                "{{compra_id}}",
+                "comprobante"
+              ]
+            },
+            "description": "AKASH-115. En Body → form-data, campo `archivo` (tipo File): JPG, PNG, WEBP o PDF, máx. 5 MB. Va al bucket privado. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver comprobante (enlace temporal)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras/{{compra_id}}/comprobante",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras",
+                "{{compra_id}}",
+                "comprobante"
+              ]
+            },
+            "description": "Devuelve un enlace firmado que vence en 5 minutos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Compras del producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/compras",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "compras"
+              ]
+            },
+            "description": "HU033 escenario 4: con qué compras ingresó su stock."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9. Panel: pedidos 🔒",
       "description": "Bandeja y detalle de pedidos (HU017). Solo lectura.",
       "item": [
         {

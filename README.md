@@ -115,6 +115,7 @@ DATABASE_URL=              # Supabase → Connect → Session pooler (Render no 
 SUPABASE_URL=              # https://<ref>.supabase.co
 SUPABASE_SECRET_KEY=       # llave secreta (sb_secret_...); solo la usa el backend para Storage
 SUPABASE_BUCKET=productos  # bucket público de fotos de producto
+SUPABASE_BUCKET_COMPROBANTES=comprobantes   # bucket PRIVADO de comprobantes de compra (AKASH-115)
 JWT_SECRET=                # cadena aleatoria larga: python -c "import secrets; print(secrets.token_urlsafe(48))"
 JWT_EXPIRE_MINUTES=30
 CORS_ORIGINS=http://localhost:5173          # en Render: también la URL de Vercel, separadas por coma

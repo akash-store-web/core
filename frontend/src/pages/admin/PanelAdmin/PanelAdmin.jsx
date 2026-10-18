@@ -9,6 +9,7 @@ import {
   listarVariantes,
 } from '../../../services/productosService.js';
 import { soles } from '../../../utils/formato.js';
+import ComprasDelProducto from './ComprasDelProducto.jsx';
 import './PanelAdmin.css';
 
 // HU015: edición de existencias en la fila, con − / + y cantidad exacta.
@@ -334,6 +335,7 @@ function PanelAdmin() {
             {abiertoId === p.id && (
               <div className="ProductoFilaCompleta">
                 <VariantesDetalle productoId={p.id} onDeltaTotal={aplicarDeltaTotal} />
+                <ComprasDelProducto productoId={p.id} />
               </div>
             )}
           </li>
