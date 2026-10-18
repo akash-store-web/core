@@ -217,7 +217,23 @@ El stock **entra** por aquí: cada compra suma las existencias de sus variantes 
 // 409 {"detail": "Ese comprobante de ese proveedor ya está registrado; no se volvió a sumar el stock"}
 // 422 campos inválidos o variante inexistente (no se guarda nada)
 ```
-El duplicado se detecta por proveedor + tipo + número, sin distinguir mayúsculas. El archivo del comprobante (foto o PDF) se adjunta aparte (AKASH-115).
+El duplicado se detecta por proveedor + tipo + número, sin distinguir mayúsculas. El archivo del comprobante (foto o PDF) se adjunta aparte:
+
+### `POST /admin/compras/{id}/comprobante` (AKASH-115)
+`multipart/form-data` con el archivo en el campo **`archivo`**: JPG, PNG, WEBP o **PDF**, máx. 5 MB. Se guarda en un **bucket privado**; si la compra ya tenía comprobante, lo reemplaza. Responde la compra con `tiene_comprobante: true`.
+```js
+const datos = new FormData();
+datos.append("archivo", archivo);
+await fetch(`${API}/admin/compras/${id}/comprobante`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: datos });
+```
+Errores: `413` > 5 MB · `415` formato no permitido · `404` compra inexistente · `502` falló Storage.
+
+### `GET /admin/compras/{id}/comprobante`
+El bucket es privado, así que no hay URL fija: devuelve un **enlace temporal** para abrir el archivo.
+```json
+{"url": "https://<ref>.supabase.co/storage/v1/object/sign/comprobantes/compras/1/abc.pdf?token=...", "expira_en_segundos": 300}
+```
+Pídanlo al momento de abrirlo (no lo guarden): vence a los 5 minutos. `404` si la compra no tiene comprobante.
 
 ### `GET /admin/compras?proveedor=&desde=&hasta=` · `GET /admin/compras/{id}`
 Listado del comprobante más reciente al más antiguo (`proveedor` busca por nombre; `desde` y `hasta` en formato `AAAA-MM-DD`) y detalle con sus líneas.

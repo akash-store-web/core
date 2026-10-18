@@ -194,6 +194,12 @@ items = [
                    {"key": "desde", "value": "", "description": "AAAA-MM-DD (opcional)"},
                    {"key": "hasta", "value": "", "description": "AAAA-MM-DD (opcional)"}]),
         req("Detalle de la compra", "GET", "/admin/compras/{{compra_id}}", eventos=codigo(200)),
+        req("Adjuntar comprobante", "POST", "/admin/compras/{{compra_id}}/comprobante",
+            descripcion="AKASH-115. En Body → form-data, campo `archivo` (tipo File): JPG, PNG, WEBP o PDF, máx. 5 MB. "
+                        "Va al bucket privado. " + ESCRIBE,
+            formdata=[{"key": "archivo", "type": "file", "src": []}], eventos=codigo(200)),
+        req("Ver comprobante (enlace temporal)", "GET", "/admin/compras/{{compra_id}}/comprobante",
+            descripcion="Devuelve un enlace firmado que vence en 5 minutos.", eventos=codigo(200)),
         req("Compras del producto", "GET", "/admin/productos/{{producto_id}}/compras",
             descripcion="HU033 escenario 4: con qué compras ingresó su stock.", eventos=codigo(200)),
     ]),

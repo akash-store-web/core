@@ -1689,6 +1689,78 @@
           ]
         },
         {
+          "name": "Adjuntar comprobante",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras/{{compra_id}}/comprobante",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras",
+                "{{compra_id}}",
+                "comprobante"
+              ]
+            },
+            "description": "AKASH-115. En Body → form-data, campo `archivo` (tipo File): JPG, PNG, WEBP o PDF, máx. 5 MB. Va al bucket privado. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver comprobante (enlace temporal)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/compras/{{compra_id}}/comprobante",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "compras",
+                "{{compra_id}}",
+                "comprobante"
+              ]
+            },
+            "description": "Devuelve un enlace firmado que vence en 5 minutos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Compras del producto",
           "request": {
             "method": "GET",

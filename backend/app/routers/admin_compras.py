@@ -41,7 +41,8 @@ def compras_de_producto(producto_id: int, db: Session = Depends(get_db)):
 @router.post("/compras/{compra_id}/comprobante", response_model=CompraOut)
 def subir_comprobante(compra_id: int, archivo: UploadFile = File(...), db: Session = Depends(get_db)):
     """AKASH-115: adjunta la foto o el PDF del comprobante (maximo 5 MB) al bucket privado."""
-    comprobantes.adjuntar_comprobante(db, compra_id, archivo.file.read())
+    # Se lee como máximo MAX_BYTES + 1: alcanza para rechazar un archivo grande sin cargarlo entero en memoria.
+    comprobantes.adjuntar_comprobante(db, compra_id, archivo.file.read(comprobantes.MAX_BYTES + 1))
     return servicio.obtener_compra(db, compra_id)
 
 
