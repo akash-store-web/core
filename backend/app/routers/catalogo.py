@@ -10,9 +10,11 @@ router = APIRouter(prefix="/catalogo", tags=["catálogo (público)"])
 
 
 @router.get("", response_model=list[ProductoCatalogo])
-def listar_catalogo(categoria_id: int | None = None, q: str | None = None, db: Session = Depends(get_db)):
-    """Solo productos publicados (HU016), con precio visible (HU002) y disponibilidad (HU003, HU015)."""
-    return servicio.listar_catalogo(db, categoria_id, q)
+def listar_catalogo(categoria_id: int | None = None, q: str | None = None, solo_disponibles: bool = False,
+                    db: Session = Depends(get_db)):
+    """Solo productos publicados (HU016), con precio visible (HU002) y disponibilidad (HU003).
+    `solo_disponibles=true` oculta los agotados (HU029)."""
+    return servicio.listar_catalogo(db, categoria_id, q, solo_disponibles)
 
 
 @router.get("/categorias", response_model=list[CategoriaPublica])

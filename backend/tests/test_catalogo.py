@@ -134,3 +134,24 @@ def test_categorias_solo_con_productos_publicados(client, auth):
 
 def test_ficha_inexistente(client):
     assert client.get("/catalogo/99").status_code == 404
+
+
+def test_solo_disponibles_oculta_los_agotados(client, auth):
+    """HU029: el interruptor «Ver solo disponibles»."""
+    spray = _crear(client, auth, SPRAY)
+    _anillo_con_dos_precios(client, auth)
+    variante = client.get(f"/admin/productos/{spray}/variantes", headers=auth).json()[0]["id"]
+    client.patch(f"/admin/variantes/{variante}/stock", json={"existencias": 0}, headers=auth)
+
+    todos = [p["nombre"] for p in client.get("/catalogo").json()]
+    disponibles = [p["nombre"] for p in client.get("/catalogo", params={"solo_disponibles": True}).json()]
+    assert todos == ["Anillo de plata 925 con piedra", "Spray áurico"]
+    assert disponibles == ["Anillo de plata 925 con piedra"]
+
+
+def test_solo_disponibles_se_combina_con_los_otros_filtros(client, auth):
+    _crear(client, auth, SPRAY)
+    _anillo_con_dos_precios(client, auth)
+    filtrado = client.get("/catalogo", params={"solo_disponibles": True, "categoria_id": 6}).json()
+    assert [p["nombre"] for p in filtrado] == ["Spray áurico"]
+    assert client.get("/catalogo", params={"solo_disponibles": "talvez"}).status_code == 422

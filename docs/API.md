@@ -259,7 +259,8 @@ Del más reciente al más antiguo. `q` busca por número, nombre o teléfono; `e
 
 Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas.
 
-### `GET /catalogo?categoria_id=&q=` — tarjetas
+### `GET /catalogo?categoria_id=&q=&solo_disponibles=` — tarjetas
+`solo_disponibles=true` oculta los productos agotados: es el interruptor «Ver solo disponibles» (HU029).
 ```json
 [{"id": 1, "nombre": "Anillo de plata 925 con piedra", "categoria_id": 4, "categoria": "Anillos",
   "precio": "40.00", "precio_desde": true, "disponible": true, "es_pieza_natural": true,
