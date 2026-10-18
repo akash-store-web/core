@@ -1002,10 +1002,10 @@
                 "{{variante_id}}"
               ]
             },
-            "description": "Para la primera piedra, renombra la variante \"Única\". ⚠️ Escribe en la base del entorno elegido.",
+            "description": "Para la primera piedra, renombra la variante \"Única\". No cambia existencias (HU032). ⚠️ Escribe en la base del entorno elegido.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Amatista\",\n  \"precio\": \"45.00\",\n  \"existencias\": 3,\n  \"propiedades\": \"Se le atribuye calma.\"\n}",
+              "raw": "{\n  \"nombre\": \"Amatista\",\n  \"precio\": \"45.00\",\n  \"propiedades\": \"Se le atribuye calma.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

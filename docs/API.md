@@ -159,8 +159,12 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 
 ### `POST /admin/productos/{id}/variantes` → `201` · `PUT /admin/productos/{id}/variantes/{vid}`
 ```json
+// POST (nueva variante)
 {"nombre": "Turmalina negra", "precio": null, "existencias": 2, "propiedades": null}
+// PUT (editar, HU032): sin existencias
+{"nombre": "Turmalina negra", "precio": "42.00", "propiedades": "Se le atribuye protección."}
 ```
+**Editar no cambia las existencias (HU032):** si el `PUT` trae `existencias`, se ignora. En la pantalla de edición muéstrenlas solo como lectura.
 `nombre` obligatorio (máx. 80); `precio` > 0 o `null`; `existencias` ≥ 0.
 **Tabla editable (AKASH-46):** la primera piedra se registra **renombrando la variante "Única"** con `PUT`; las demás con `POST`.
 
