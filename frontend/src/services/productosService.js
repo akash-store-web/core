@@ -285,3 +285,27 @@ export async function ajustarStock(varianteId, cambio) {
     body: cambio,
   });
 }
+
+
+/*
+  HU033 (AKASH-117): con qué compras ingresó el stock de un producto.
+  Responde [{ compra_id, fecha, proveedor, tipo_comprobante, numero_comprobante,
+              variante_id, variante, cantidad, costo_unitario }].
+*/
+export async function listarComprasDeProducto(productoId) {
+  if (USE_MOCK) {
+    await esperar(250);
+    if (productoId !== 1) return [];
+    return [
+      {
+        compra_id: 2, fecha: '2026-10-14', proveedor: 'Minerales del Sur', tipo_comprobante: 'factura',
+        numero_comprobante: 'F001-000123', variante_id: 1, variante: 'Amatista', cantidad: 10, costo_unitario: '12.50',
+      },
+      {
+        compra_id: 1, fecha: '2026-10-02', proveedor: 'Plata Andina', tipo_comprobante: 'boleta',
+        numero_comprobante: 'B001-000045', variante_id: 2, variante: 'Turmalina negra', cantidad: 4, costo_unitario: '15.00',
+      },
+    ];
+  }
+  return apiFetch(`/admin/productos/${productoId}/compras`);
+}
