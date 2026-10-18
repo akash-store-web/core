@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.models.imagen import Imagen
 from app.models.producto import Producto
+from app.models.movimiento_stock import MovimientoStock
 from app.models.variante import Variante
 from app.services import storage
 from scripts.catalogo_datos import leer_catalogo
@@ -46,6 +47,10 @@ def test_las_existencias_arrancan_en_cero_o_en_lo_pedido(engine):
         db.commit()
         cargar(db, aplicar=True, existencias=2)
         assert db.query(Variante).filter(Variante.existencias != 2).count() == 0
+        # HU034: cada unidad cargada queda respaldada por un movimiento de inventario inicial
+        movimientos = db.query(MovimientoStock).all()
+        assert len(movimientos) == db.query(Variante).count()
+        assert {(m.tipo, m.cantidad, m.saldo) for m in movimientos} == {("inventario_inicial", 2, 2)}
 
 
 def test_pulsera_de_cuarzo_con_sus_12_piedras(engine, client, auth):

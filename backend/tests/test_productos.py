@@ -61,17 +61,19 @@ def test_crear_producto_solo_con_campos_obligatorios(client, auth):
 
 def test_producto_sin_variantes_nace_con_variante_unica(client, auth):
     """HU027 #3: un producto sin variantes funciona con una única existencia."""
-    _crear(client, auth, existencias=4)
-    variantes = client.get("/admin/productos/1/variantes", headers=auth).json()
-    assert [(v["nombre"], v["existencias"], v["precio"]) for v in variantes] == [("Única", 4, None)]
-    assert variantes[0]["precio_efectivo"] == "25.00"
-    assert client.get("/admin/productos", headers=auth).json()[0]["existencias_total"] == 4
-
-
-def test_existencias_iniciales_por_defecto_y_negativas(client, auth):
     _crear(client, auth)
-    assert client.get("/admin/productos", headers=auth).json()[0]["existencias_total"] == 0
-    assert _crear(client, auth, existencias=-1).status_code == 422
+    variantes = client.get("/admin/productos/1/variantes", headers=auth).json()
+    assert [(v["nombre"], v["existencias"], v["precio"]) for v in variantes] == [("Única", 0, None)]
+    assert variantes[0]["precio_efectivo"] == "25.00"
+
+
+def test_el_producto_nace_sin_stock_aunque_se_envien_existencias(client, auth):
+    """HU034: el stock entra solo por compras o ajustes; al crear, `existencias` se ignora."""
+    assert _crear(client, auth, existencias=50).status_code == 201
+    assert _crear(client, auth, nombre="Otra pulsera", existencias=-1).status_code == 201
+    filas = client.get("/admin/productos", headers=auth).json()
+    assert [f["existencias_total"] for f in filas] == [0, 0]
+    assert client.get("/admin/productos/1/movimientos", headers=auth).json() == []
 
 
 def test_crear_producto_ignora_publicado(client, auth):

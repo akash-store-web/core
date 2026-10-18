@@ -126,14 +126,13 @@ Listado del panel; `q` busca por nombre sin distinguir mayúsculas.
   "material": "Plata 925",                 // opcional, máx. 80
   "medidas": "Piedra de 8 × 10 mm",        // opcional, máx. 80
   "peso_g": "12.50",                       // opcional, > 0
-  "es_pieza_natural": true,                // opcional (false)
-  "existencias": 3                         // opcional (0): stock de la variante "Única"
+  "es_pieza_natural": true                 // opcional (false)
 }
 ```
-Responde el producto (`publicado: false`, `imagenes: []`). **Todo producto nace con una variante "Única"** que guarda su stock (HU027): si el producto no tiene piedras ni aromas, no hay que hacer nada más.
+Responde el producto (`publicado: false`, `imagenes: []`). **Todo producto nace con una variante "Única"** que guarda su stock (HU027), y nace con **existencias 0**: el stock entra por compras (HU033) o ajustes (HU034).
 
 ### `GET /admin/productos/{id}` · `PUT /admin/productos/{id}`
-`PUT` recibe los mismos campos que el `POST` salvo `existencias` (el stock se cambia por variante). Ninguno de los dos cambia `publicado`.
+`PUT` recibe los mismos campos que el `POST`. Ninguno de los dos cambia `publicado` ni las existencias (HU034).
 
 ### `PATCH /admin/productos/{id}/publicado` — interruptor Activo/Inactivo (HU016)
 ```json
@@ -159,26 +158,45 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 
 ### `POST /admin/productos/{id}/variantes` → `201` · `PUT /admin/productos/{id}/variantes/{vid}`
 ```json
-// POST (nueva variante)
-{"nombre": "Turmalina negra", "precio": null, "existencias": 2, "propiedades": null}
+// POST (nueva variante): nace con existencias 0
+{"nombre": "Turmalina negra", "precio": null, "propiedades": null}
 // PUT (editar, HU032): sin existencias
 {"nombre": "Turmalina negra", "precio": "42.00", "propiedades": "Se le atribuye protección."}
 ```
 **Editar no cambia las existencias (HU032):** si el `PUT` trae `existencias`, se ignora. En la pantalla de edición muéstrenlas solo como lectura.
-`nombre` obligatorio (máx. 80); `precio` > 0 o `null`; `existencias` ≥ 0.
+`nombre` obligatorio (máx. 80); `precio` > 0 o `null`.
 **Tabla editable (AKASH-46):** la primera piedra se registra **renombrando la variante "Única"** con `PUT`; las demás con `POST`.
 
 ### `DELETE /admin/productos/{id}/variantes/{vid}` → `204`
-`409` si es la última variante del producto o si ya tiene pedidos (en ese caso, dejen sus existencias en 0).
+`409` si es la última variante del producto o si ya tiene pedidos (en ese caso, se deja como está).
 
-### `PATCH /admin/variantes/{vid}/stock` — botones +/− del listado (HU015)
+---
+
+## Panel: stock por movimientos 🔒 (HU034)
+
+**El stock ya no se edita a mano.** Productos y variantes nacen con existencias **0**; si `POST` o `PUT` traen `existencias`, se ignora. El stock cambia solo por movimientos:
+
+| `tipo` | Origen |
+|---|---|
+| `inventario_inicial` | Stock que existía antes de HU034 (una sola vez, por script) |
+| `compra` | Registro de una compra con comprobante (HU033) |
+| `venta` | Pedido confirmado (HU010/HU018) |
+| `ajuste` | Roto, perdido o mal contado; **motivo obligatorio** |
+
+> Se retiró `PATCH /admin/variantes/{vid}/stock` (los botones +/− de HU015). En el panel se reemplaza por el formulario de ajuste (AKASH-124).
+
+### `POST /admin/variantes/{vid}/ajustes` → `201`
 ```json
-{"cambio": -1}          // botones + / −
-{"existencias": 12}     // o la cantidad exacta (uno solo de los dos)
-// 200, respuesta ligera
-{"id": 2, "producto_id": 1, "existencias": 1, "agotado": false}
-// 409 {"detail": "Las existencias no pueden quedar en negativo"}
+{"cantidad": -1, "motivo": "Se rompió al empacar"}   // cantidad con signo: − sale, + entra; motivo de 3 a 200 caracteres
+// 201: el movimiento registrado
+{"id": 8, "variante_id": 2, "variante": "Turmalina negra", "fecha": "2026-10-16T15:20:00Z", "tipo": "ajuste",
+ "cantidad": -1, "saldo": 1, "motivo": "Se rompió al empacar", "compra_id": null, "pedido_numero": null,
+ "usuario": "duena@ejemplo.com"}
+// 409 {"detail": "Las existencias no pueden quedar en negativo"} · 422 sin motivo o cantidad 0
 ```
+
+### `GET /admin/variantes/{vid}/movimientos` · `GET /admin/productos/{id}/movimientos`
+Historial del más reciente al más antiguo, con el **saldo** después de cada movimiento. El del producto incluye todas sus variantes (cada fila trae `variante`). En una venta, `pedido_numero` dice qué pedido la originó; en una compra, `compra_id`.
 
 ---
 

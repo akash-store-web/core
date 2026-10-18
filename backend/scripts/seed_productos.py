@@ -18,8 +18,10 @@ from app import models  # noqa: F401  registra todos los modelos para las relaci
 from app.database import SessionLocal
 from app.models.categoria import Categoria
 from app.models.producto import Producto
+from app.models.movimiento_stock import TipoMovimiento
 from app.models.variante import Variante
 from app.schemas.producto import ProductoCrear
+from app.services.movimientos import registrar_movimiento
 from app.services.productos import crear_producto
 
 PROPIEDADES = {
@@ -163,17 +165,30 @@ def cargar(db, aplicar: bool) -> None:
         if not aplicar:
             continue
 
-        campos = {k: val for k, val in datos.items() if k not in ("categoria", "variantes")}
+        campos = {k: val for k, val in datos.items() if k not in ("categoria", "variantes", "existencias")}
         producto = crear_producto(db, ProductoCrear(categoria_id=categorias[datos["categoria"]], **campos))
+        primera_variante = producto.variantes[0]
         if variantes:
             # La variante "Única" se reutiliza como primera piedra o aroma; las demás se agregan.
             unica, *resto = variantes
-            for campo, valor in unica.items():
-                setattr(producto.variantes[0], campo, Decimal(valor) if campo == "precio" and valor else valor)
+            primera_variante.nombre = unica["nombre"]
+            primera_variante.precio = Decimal(unica["precio"]) if unica["precio"] else None
+            primera_variante.propiedades = unica["propiedades"]
+            pares = [(primera_variante, unica["existencias"])]
             for extra in resto:
-                precio = Decimal(extra["precio"]) if extra["precio"] else None
-                db.add(Variante(producto_id=producto.id, **{**extra, "precio": precio}))
-            db.commit()
+                nueva = Variante(producto_id=producto.id, nombre=extra["nombre"], existencias=0,
+                                 precio=Decimal(extra["precio"]) if extra["precio"] else None,
+                                 propiedades=extra["propiedades"])
+                db.add(nueva)
+                pares.append((nueva, extra["existencias"]))
+        else:
+            pares = [(primera_variante, datos.get("existencias", 0))]
+        db.flush()
+        # HU034: el stock de ejemplo entra como movimiento de inventario inicial, nunca directo.
+        for variante, stock in pares:
+            if stock > 0:
+                registrar_movimiento(db, variante.id, stock, TipoMovimiento.INVENTARIO_INICIAL)
+        db.commit()
     accion = "Creados" if aplicar else "Se crearían"
     print(f"{accion} {creados} productos (despublicados, sin fotos).")
 

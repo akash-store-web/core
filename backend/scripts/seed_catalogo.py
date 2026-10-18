@@ -3,8 +3,9 @@
 - Productos DESPUBLICADOS: la propietaria revisa y publica desde el panel (HU016).
 - Antes de escribir se revisa la hoja con las reglas de scripts/cargar_catalogo.py: si hay errores, no se carga nada.
 - Los productos sin precio en la hoja (pendientes de confirmar con ella) se saltan y se listan.
-- Existencias: si la hoja tiene una columna 'existencias' se usa; si no, quedan en 0 ("Agotado") y se
-  ajustan desde el panel (HU015). Con --existencias N las variantes sin dato arrancan con N.
+- Existencias: si la hoja tiene una columna 'existencias' se usa; si no, quedan en 0 ("Agotado"). Con
+  --existencias N las variantes sin dato arrancan con N. HU034: ese stock se registra como movimiento de
+  "inventario inicial" (nunca se escribe directo en la variante); después solo entra por compras (HU033).
 - Fotos (opcional): --fotos CARPETA con una subcarpeta por producto, con el nombre del producto en
   minúsculas y con guiones (ej. collar-de-amatista/). Las fotos pasan por la misma subida de la API.
 - Idempotente: si ya existe un producto con el mismo nombre, lo salta (y avisa si su precio difiere).
@@ -24,9 +25,11 @@ from app import models  # noqa: F401  registra todos los modelos para las relaci
 from app.database import SessionLocal
 from app.models.categoria import Categoria
 from app.models.producto import Producto
+from app.models.movimiento_stock import TipoMovimiento
 from app.models.variante import Variante
 from app.schemas.producto import ProductoCrear
 from app.services import imagenes as servicio_imagenes
+from app.services.movimientos import registrar_movimiento
 from app.services.productos import crear_producto
 from scripts.catalogo_datos import HOJA_POR_DEFECTO, VARIANTE_UNICA, leer_catalogo, slug
 
@@ -41,21 +44,26 @@ def _crear(db, categorias: dict, datos: dict, existencias: int) -> Producto:
     campos = {k: datos[k] for k in ("nombre", "descripcion", "material", "medidas", "precio_base", "es_pieza_natural")}
     variantes = datos["variantes"]
     unica_sola = len(variantes) == 1 and variantes[0]["nombre"] == VARIANTE_UNICA
-    producto = crear_producto(db, ProductoCrear(
-        categoria_id=categorias[datos["categoria"]],
-        existencias=_stock(variantes[0], existencias) if unica_sola else existencias,
-        **campos,
-    ))
-    if unica_sola:
-        return producto  # sin piedras ni aromas: basta la variante "Única" que ya trae el producto
-    # La variante "Única" se reutiliza como primera piedra o aroma; las demás se agregan (HU027).
-    primera, *resto = variantes
+    # HU034: el producto nace sin stock; el de la hoja entra como movimiento de inventario inicial.
+    producto = crear_producto(db, ProductoCrear(categoria_id=categorias[datos["categoria"]], **campos))
     unica = producto.variantes[0]
-    unica.nombre, unica.precio, unica.propiedades = primera["nombre"], primera["precio"], primera["propiedades"]
-    unica.existencias = _stock(primera, existencias)
-    for extra in resto:
-        db.add(Variante(producto_id=producto.id, nombre=extra["nombre"], precio=extra["precio"],
-                        propiedades=extra["propiedades"], existencias=_stock(extra, existencias)))
+    if unica_sola:
+        filas = [(unica, variantes[0])]  # sin piedras ni aromas: basta la variante "Única"
+    else:
+        # La variante "Única" se reutiliza como primera piedra o aroma; las demás se agregan (HU027).
+        primera, *resto = variantes
+        unica.nombre, unica.precio, unica.propiedades = primera["nombre"], primera["precio"], primera["propiedades"]
+        filas = [(unica, primera)]
+        for extra in resto:
+            nueva = Variante(producto_id=producto.id, nombre=extra["nombre"], precio=extra["precio"],
+                             propiedades=extra["propiedades"], existencias=0)
+            db.add(nueva)
+            filas.append((nueva, extra))
+    db.flush()
+    for variante, dato in filas:
+        stock = _stock(dato, existencias)
+        if stock > 0:
+            registrar_movimiento(db, variante.id, stock, TipoMovimiento.INVENTARIO_INICIAL)
     db.commit()
     db.refresh(producto)
     return producto

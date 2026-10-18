@@ -32,9 +32,10 @@ def _validar_categoria(db: Session, categoria_id: int) -> None:
 
 def crear_producto(db: Session, datos: ProductoCrear) -> Producto:
     _validar_categoria(db, datos.categoria_id)
-    producto = Producto(**datos.model_dump(exclude={"existencias"}))
+    producto = Producto(**datos.model_dump())
     # HU027 #3: un producto sin variantes funciona con una variante única implícita.
-    producto.variantes.append(Variante(nombre=VARIANTE_UNICA, existencias=datos.existencias))
+    # HU034: nace sin stock; entra por compras o ajustes, nunca a mano.
+    producto.variantes.append(Variante(nombre=VARIANTE_UNICA, existencias=0))
     db.add(producto)
     db.commit()
     db.refresh(producto)
