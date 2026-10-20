@@ -131,25 +131,30 @@ function Campo({ id, label, error, obligatorio, ayuda, children }) {
   );
 }
 
-function ExistenciasNota() {
+// Con HU034 el stock nunca se escribe en este formulario: entra por compras o ajustes con motivo.
+// Al crear no hay nada que mostrar (todo nace con 0), solo el aviso; al editar se ve en solo lectura.
+function ExistenciasNota({ esEdicion }) {
   return (
-    <p className="CampoAyuda">
-      Las existencias son solo de lectura: cambian al registrar una compra o un ajuste de
-      inventario.
+    <p className="ExistenciasAviso">
+      {esEdicion
+        ? 'Las existencias son solo de lectura: cambian al registrar una compra o un ajuste de inventario.'
+        : 'El stock se carga registrando una compra.'}
     </p>
   );
 }
 
-// Producto sin variantes: muestra su única existencia sin permitir editarla.
+// Producto sin variantes. Al editar muestra su única existencia sin permitir cambiarla.
 function ExistenciasLectura({ esEdicion, existencias }) {
+  if (!esEdicion) return <ExistenciasNota esEdicion={false} />;
+
   return (
     <div className="Campo">
       <span className="ExistenciasEtiqueta">Existencias</span>
       <p className="ExistenciasValor">
-        {esEdicion ? existencias ?? 0 : 0}
+        {existencias ?? 0}
         <small> solo lectura</small>
       </p>
-      <ExistenciasNota />
+      <ExistenciasNota esEdicion />
     </div>
   );
 }
@@ -701,7 +706,7 @@ function ProductoForm() {
 
         {/* ---- Existencias y variantes (HU027) ---- */}
         <fieldset className="FormSeccion">
-          <legend>Existencias y variantes</legend>
+          <legend>Variantes</legend>
 
           <label className="CampoCheck">
             <input
@@ -721,10 +726,9 @@ function ProductoForm() {
           ) : (
             <>
               <p className="CampoAyuda">
-                Cada variante lleva sus propias existencias. Si dejas el precio vacío, usa el
-                precio base.
+                Si dejas el precio de una variante vacío, usa el precio base.
               </p>
-              <ExistenciasNota />
+              <ExistenciasNota esEdicion={esEdicion} />
               <ul className="VariantesForm">
                 {variantes.map((v, i) => (
                   <li key={v.key} className="VarianteForm">
@@ -773,13 +777,16 @@ function ProductoForm() {
                         />
                       </Campo>
 
-                      <div className="Campo">
-                        <span className="ExistenciasEtiqueta">Existencias</span>
-                        <p className="ExistenciasValor" aria-label={`Existencias de ${v.nombre || 'variante nueva'}`}>
-                          {v.id ? v.existencias : 0}
-                          <small> solo lectura</small>
-                        </p>
-                      </div>
+                      {/* Solo las variantes ya guardadas tienen existencias que mostrar */}
+                      {v.id && (
+                        <div className="Campo">
+                          <span className="ExistenciasEtiqueta">Existencias</span>
+                          <p className="ExistenciasValor" aria-label={`Existencias de ${v.nombre}`}>
+                            {v.existencias}
+                            <small> solo lectura</small>
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <Campo id={`campo-variante_${i}_propiedades`} label="Propiedades atribuidas">
