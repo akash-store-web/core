@@ -33,6 +33,14 @@ function App() {
         }
       />
       <Route
+        path="/adminPanel/productos/:id/editar"
+        element={
+          <ProtectedRoute>
+            <ProductoForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/adminPanel/envios"
         element={
           <ProtectedRoute>
