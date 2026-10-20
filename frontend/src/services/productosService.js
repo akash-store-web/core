@@ -376,6 +376,17 @@ export async function marcarImagenPrincipal(productoId, imagenId) {
   });
 }
 
+// Solo para el modo mock: la pantalla de compras (HU033) suma stock aquí, igual que haría el backend.
+export function sumarStockMock(varianteId, cantidad) {
+  for (const producto of productosMock) {
+    const variante = producto.variantes.find((v) => v.id === varianteId);
+    if (!variante) continue;
+    variante.existencias += cantidad;
+    return { producto_id: producto.id, producto: producto.nombre, variante: variante.nombre };
+  }
+  return null;
+}
+
 /*
   HU015: ajusta las existencias de UNA variante desde el listado.
   `cambio` = { cambio: -1 } (botones − / +)  o  { existencias: 12 } (cantidad exacta).
