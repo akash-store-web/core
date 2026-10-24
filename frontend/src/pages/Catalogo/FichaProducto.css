@@ -1,0 +1,516 @@
+/* ===== Ficha de producto (HU028) =====
+   Móvil: galería arriba e información debajo.
+   Escritorio: galería a la izquierda (fija al hacer scroll) e información a la derecha,
+   como en la ficha de la referencia. Reutiliza estados y botones de Catalogo.css. */
+
+.Ficha__volver {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--color-marron);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.Ficha__volver:hover {
+  text-decoration: underline;
+}
+
+.Ficha__cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+/* ----- Galería ----- */
+.Galeria {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.Galeria__principal {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 16px;
+  background-color: var(--color-blanco);
+  touch-action: pan-y; /* deja hacer scroll vertical; el gesto horizontal cambia la foto */
+}
+
+.Galeria__principal img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* la foto completa, sin recortes */
+  animation: Galeria-entrada 0.25s ease;
+}
+
+/* La imagen genérica sí puede llenar el marco */
+.Galeria img.Galeria__img--generica {
+  object-fit: cover;
+}
+
+@keyframes Galeria-entrada {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+.Galeria__etiqueta {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: rgba(37, 34, 22, 0.75);
+  color: var(--color-blanco);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.Galeria__contador {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.85);
+  color: var(--color-negro-calido);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.Galeria__flecha {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.85);
+  color: var(--color-negro-calido);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translateY(-50%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.Galeria__flecha:hover {
+  background-color: var(--color-blanco);
+}
+
+.Galeria__flecha--anterior {
+  left: 10px;
+}
+
+.Galeria__flecha--siguiente {
+  right: 10px;
+}
+
+.Galeria__miniaturas {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto; /* si hay muchas, se deslizan dentro de su fila, no en la página */
+  scroll-snap-type: x mandatory;
+  list-style: none;
+  padding-bottom: 4px;
+}
+
+.Galeria__miniaturas li {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+}
+
+.Galeria__miniatura {
+  display: block;
+  width: 64px;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.Galeria__miniatura img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.Galeria__miniatura:hover {
+  opacity: 1;
+}
+
+.Galeria__miniatura[aria-current='true'] {
+  border-color: var(--color-marron);
+  opacity: 1;
+}
+
+.Galeria__flecha:focus-visible,
+.Galeria__miniatura:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+/* ----- Información ----- */
+.Ficha__info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.Ficha__categoria {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--color-marron);
+}
+
+.Ficha__nombre {
+  font-family: var(--font-title);
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 1px;
+  color: var(--color-negro-calido);
+  overflow-wrap: anywhere;
+}
+
+.Ficha__precio {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-marron);
+}
+
+.Ficha__desde {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.Ficha__estado {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background-color: var(--color-marmol-beige);
+  color: var(--color-negro-calido);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.Ficha__estado--agotado {
+  background-color: var(--color-negro-calido);
+  color: var(--color-blanco);
+}
+
+.Ficha__descripcion {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-negro-calido);
+}
+
+.Ficha__nota {
+  padding: 12px 14px;
+  border-left: 3px solid var(--color-marron);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.Ficha__detalles {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.Ficha__subtitulo {
+  margin-bottom: 8px;
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--color-marron);
+}
+
+.Ficha__detalle {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-marmol-beige);
+  font-size: 14px;
+}
+
+.Ficha__detalle dt {
+  flex: 0 0 90px;
+  font-weight: 600;
+}
+
+.Ficha__detalle dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Esqueleto de carga */
+.Esqueleto.Ficha__esqueletoFoto {
+  height: auto;
+  aspect-ratio: 3 / 4;
+  border-radius: 16px;
+}
+
+.Esqueleto.Ficha__esqueletoTitulo {
+  width: 80%;
+  height: 32px;
+}
+
+/* El enlace «Ver el catálogo» usa el estilo del botón */
+a.Catalogo__boton {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* ----- Compra: selector de variante, propiedades y botón (HU028) ----- */
+.Compra {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.Selector {
+  min-width: 0;
+  border: none;
+}
+
+.Selector__titulo {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-negro-calido);
+}
+
+.Selector__elegida {
+  font-weight: 400;
+}
+
+.Selector__opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Cada opción es un radio con aspecto de "pastilla" */
+.Selector__opcion {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 16px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 999px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, color 0.15s;
+}
+
+/* El radio real queda invisible pero sigue funcionando con teclado y lectores de pantalla */
+.Selector__opcion input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.Selector__nombre {
+  overflow-wrap: anywhere;
+}
+
+.Selector__opcion:hover {
+  border-color: var(--color-marron);
+}
+
+.Selector__opcion--elegida {
+  border-color: var(--color-marron);
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.Selector__opcion:has(input:focus-visible) {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+.Selector__precio {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Escenario 2: agotada, visible pero no seleccionable */
+.Selector__opcion--agotada,
+.Selector__opcion--agotada:hover {
+  border-style: dashed;
+  border-color: var(--color-marmol-beige);
+  background-color: transparent;
+  color: rgba(37, 34, 22, 0.55);
+  cursor: not-allowed;
+}
+
+.Selector__opcion--agotada .Selector__nombre {
+  text-decoration: line-through;
+}
+
+.Selector__agotada {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.Selector.campo-invalido .Selector__opcion:not(.Selector__opcion--agotada) {
+  border-color: var(--color-error);
+}
+
+.Ficha .CampoError {
+  margin-top: 8px;
+  color: var(--color-error);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.Propiedades {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+}
+
+.Propiedades__titulo {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-marron);
+}
+
+.Propiedades p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.Compra__pista {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--color-marron);
+}
+
+.Compra__boton {
+  width: 100%;
+  max-width: 420px;
+  min-height: 52px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.Compra__boton:hover:not(:disabled) {
+  background-color: var(--color-negro-calido);
+}
+
+.Compra__boton:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 3px;
+}
+
+.Compra__boton:disabled {
+  background-color: var(--color-marmol-beige);
+  color: rgba(37, 34, 22, 0.6);
+  cursor: not-allowed;
+}
+
+.Compra__boton[aria-busy='true'] {
+  cursor: progress;
+}
+
+.Compra__aviso {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.Compra__aviso--exito {
+  background-color: var(--color-blanco);
+  border-left: 3px solid var(--color-marron);
+  color: var(--color-negro-calido);
+}
+
+.Compra__aviso--error {
+  background-color: var(--color-blanco);
+  border-left: 3px solid var(--color-error);
+  color: var(--color-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Galeria__principal img {
+    animation: none;
+  }
+}
+
+/* ===== Escritorio ===== */
+@media (min-width: 900px) {
+  .Ficha__cuerpo {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    gap: 48px;
+    align-items: start;
+  }
+
+  .Galeria {
+    position: sticky;
+    top: 96px; /* debajo de la cabecera fija */
+    justify-self: center;
+    width: 100%;
+    /* Foto + miniaturas caben en la ventana: el ancho máximo sale del alto disponible (3:4) */
+    max-width: calc((100vh - 290px) * 0.75);
+    max-width: calc((100dvh - 290px) * 0.75);
+    min-width: 320px;
+  }
+
+  .Galeria__miniatura {
+    width: 76px;
+  }
+
+  .Ficha__info {
+    gap: 16px;
+    padding-top: 8px;
+  }
+
+  .Ficha__nombre {
+    font-size: 56px;
+  }
+
+  .Ficha__precio {
+    font-size: 26px;
+  }
+}
