@@ -22,6 +22,7 @@ function AdminLayout({ children }) {
 
         <nav className="AdminNav" aria-label="Secciones del panel">
           <NavLink to="/adminPanel" end>Productos</NavLink>
+          <NavLink to="/adminPanel/compras">Compras</NavLink>
           <NavLink to="/adminPanel/envios">Envíos</NavLink>
         </nav>
 

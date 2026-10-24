@@ -1,5 +1,5 @@
 import { USE_MOCK } from './config.js';
-import { apiFetch } from './http.js';
+import { ApiError, apiFetch } from './http.js';
 
 const PLACEHOLDER = '/placeholder-producto.webp';
 const esperar = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -11,6 +11,7 @@ const esperar = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let siguienteProductoId = 4;
 let siguienteVarianteId = 6;
+let siguienteImagenId = 3;
 
 const categoriasMock = [
   { id: 1, nombre: 'Boxes y kits', orden: 1 },
@@ -29,7 +30,10 @@ const productosMock = [
     nombre: 'Anillo de plata 925 con piedra',
     precio_base: '40.00',
     publicado: true,
-    fotos: [],
+    fotos: [
+      { id: 1, url: '/placeholder-producto.webp' },
+      { id: 2, url: '/placeholder-producto.webp' },
+    ],
     variantes: [
       { id: 1, nombre: 'Amatista', precio: '45.00', existencias: 3, propiedades: 'Se le atribuye calma.' },
       { id: 2, nombre: 'Turmalina negra', precio: null, existencias: 0, propiedades: null },
@@ -144,8 +148,9 @@ export async function cambiarPublicado(productoId, publicado) {
 /*
   HU014 + HU027: registra el producto completo.
   `datos` = { categoria_id, nombre, descripcion, precio_base, material, medidas,
-              peso_g, es_pieza_natural, existencias, propiedades,
-              variantes: [{ nombre, precio, existencias, propiedades }] }
+              peso_g, es_pieza_natural, propiedades,
+              variantes: [{ nombre, precio, propiedades }] }
+  Las existencias empiezan en 0: solo cambian con compras (HU033) o ajustes (HU034).
   `fotos` = lista de File (la primera queda como principal).
 */
 export async function crearProducto(datos, fotos) {
@@ -160,7 +165,7 @@ async function crearProductoMock(datos, fotos) {
         id: siguienteVarianteId++,
         nombre: v.nombre,
         precio: v.precio,
-        existencias: v.existencias,
+        existencias: 0,
         propiedades: v.propiedades,
       }))
     : [
@@ -168,7 +173,7 @@ async function crearProductoMock(datos, fotos) {
           id: siguienteVarianteId++,
           nombre: 'Única',
           precio: null,
-          existencias: datos.existencias,
+          existencias: 0,
           propiedades: datos.propiedades,
         },
       ];
@@ -179,17 +184,20 @@ async function crearProductoMock(datos, fotos) {
     nombre: datos.nombre,
     precio_base: datos.precio_base,
     publicado: false, // HU016 escenario 3: todo producto nuevo nace sin publicar
-    fotos: fotos.map((archivo) => ({ url: URL.createObjectURL(archivo) })),
+    fotos: fotos.map((archivo) => ({ id: siguienteImagenId++, url: URL.createObjectURL(archivo) })),
     variantes,
   };
   productosMock.unshift(producto);
   return { id: producto.id, nombre: producto.nombre, publicado: false };
 }
 
+// Sprint 2: el backend ya no acepta existencias al crear o editar (entran por compras o ajustes).
+const cuerpoVariante = ({ nombre, precio, propiedades }) => ({ nombre, precio, propiedades });
+
 async function crearProductoReal(datos, fotos) {
   const tieneVariantes = datos.variantes.length > 0;
 
-  // 1. El producto nace con una variante "Única" que guarda sus existencias.
+  // 1. El producto nace con una variante "Única" (y existencias en 0).
   const producto = await apiFetch('/admin/productos', {
     method: 'POST',
     body: {
@@ -201,7 +209,6 @@ async function crearProductoReal(datos, fotos) {
       medidas: datos.medidas,
       peso_g: datos.peso_g,
       es_pieza_natural: datos.es_pieza_natural,
-      existencias: tieneVariantes ? datos.variantes[0].existencias : datos.existencias,
     },
   });
 
@@ -214,12 +221,12 @@ async function crearProductoReal(datos, fotos) {
         const [primera, ...otras] = datos.variantes;
         await apiFetch(`/admin/productos/${producto.id}/variantes/${unica.id}`, {
           method: 'PUT',
-          body: primera,
+          body: cuerpoVariante(primera),
         });
         for (const variante of otras) {
           await apiFetch(`/admin/productos/${producto.id}/variantes`, {
             method: 'POST',
-            body: variante,
+            body: cuerpoVariante(variante),
           });
         }
       } else {
@@ -228,7 +235,6 @@ async function crearProductoReal(datos, fotos) {
           body: {
             nombre: unica.nombre,
             precio: null,
-            existencias: datos.existencias,
             propiedades: datos.propiedades,
           },
         });
@@ -253,6 +259,132 @@ async function crearProductoReal(datos, fotos) {
   }
 
   return producto;
+}
+
+/* ------------------------------------------------------------------ */
+/*  HU032: editar un producto registrado                               */
+/* ------------------------------------------------------------------ */
+
+function buscarMock(productoId) {
+  const producto = productosMock.find((p) => p.id === Number(productoId));
+  if (!producto) throw new ApiError('Producto no encontrado', 404);
+  return producto;
+}
+
+const imagenesMock = (p) =>
+  p.fotos.map((f, i) => ({
+    id: f.id,
+    url: f.url,
+    orden: i + 1,
+    es_principal: i === 0,
+    es_referencia_escala: false,
+  }));
+
+// Datos del producto + sus fotos (GET /admin/productos/{id}).
+export async function obtenerProducto(productoId) {
+  if (USE_MOCK) {
+    await esperar(300);
+    const p = buscarMock(productoId);
+    return {
+      id: p.id,
+      categoria_id: p.categoria_id,
+      nombre: p.nombre,
+      descripcion: p.descripcion ?? 'Descripción de ejemplo.',
+      precio_base: p.precio_base,
+      material: p.material ?? null,
+      medidas: p.medidas ?? null,
+      peso_g: p.peso_g ?? null,
+      es_pieza_natural: p.es_pieza_natural ?? false,
+      publicado: p.publicado,
+      imagenes: imagenesMock(p),
+    };
+  }
+  return apiFetch(`/admin/productos/${productoId}`);
+}
+
+// PUT /admin/productos/{id}. No cambia `publicado` ni las existencias.
+export async function actualizarProducto(productoId, datos) {
+  if (USE_MOCK) {
+    await esperar(300);
+    Object.assign(buscarMock(productoId), datos);
+    return { id: Number(productoId) };
+  }
+  return apiFetch(`/admin/productos/${productoId}`, { method: 'PUT', body: datos });
+}
+
+// `datos` = { nombre, precio, propiedades } (sin existencias).
+export async function crearVariante(productoId, datos) {
+  if (USE_MOCK) {
+    await esperar(200);
+    const p = buscarMock(productoId);
+    const variante = { id: siguienteVarianteId++, existencias: 0, ...datos };
+    p.variantes.push(variante);
+    return aVarianteOut(p, variante);
+  }
+  return apiFetch(`/admin/productos/${productoId}/variantes`, { method: 'POST', body: datos });
+}
+
+export async function actualizarVariante(productoId, varianteId, datos) {
+  if (USE_MOCK) {
+    await esperar(200);
+    const p = buscarMock(productoId);
+    const variante = p.variantes.find((v) => v.id === varianteId);
+    if (!variante) throw new ApiError('Variante no encontrada', 404);
+    Object.assign(variante, datos);
+    return aVarianteOut(p, variante);
+  }
+  return apiFetch(`/admin/productos/${productoId}/variantes/${varianteId}`, {
+    method: 'PUT',
+    body: datos,
+  });
+}
+
+export async function subirImagen(productoId, archivo) {
+  if (USE_MOCK) {
+    await esperar(300);
+    const p = buscarMock(productoId);
+    if (p.fotos.length >= 5) throw new ApiError('Máximo 5 fotografías por producto', 409);
+    const foto = { id: siguienteImagenId++, url: URL.createObjectURL(archivo) };
+    p.fotos.push(foto);
+    return { id: foto.id, url: foto.url, es_principal: p.fotos.length === 1 };
+  }
+  const formData = new FormData();
+  formData.append('foto', archivo);
+  return apiFetch(`/admin/productos/${productoId}/imagenes`, { method: 'POST', formData });
+}
+
+export async function eliminarImagen(productoId, imagenId) {
+  if (USE_MOCK) {
+    await esperar(200);
+    const p = buscarMock(productoId);
+    p.fotos = p.fotos.filter((f) => f.id !== imagenId);
+    return null;
+  }
+  return apiFetch(`/admin/productos/${productoId}/imagenes/${imagenId}`, { method: 'DELETE' });
+}
+
+export async function marcarImagenPrincipal(productoId, imagenId) {
+  if (USE_MOCK) {
+    await esperar(200);
+    const p = buscarMock(productoId);
+    const elegida = p.fotos.find((f) => f.id === imagenId);
+    if (elegida) p.fotos = [elegida, ...p.fotos.filter((f) => f.id !== imagenId)];
+    return imagenesMock(p);
+  }
+  return apiFetch(`/admin/productos/${productoId}/imagenes/${imagenId}/principal`, {
+    method: 'PATCH',
+  });
+}
+
+// Solo para el modo mock: la pantalla de compras (HU033) suma stock aquí, igual que haría el backend.
+export function sumarStockMock(varianteId, cantidad) {
+  for (const producto of productosMock) {
+    const variante = producto.variantes.find((v) => v.id === varianteId);
+    if (!variante) continue;
+    variante.existencias += cantidad;
+    return { producto_id: producto.id, producto: producto.nombre, variante: variante.nombre };
+  }
+  return null;
 }
 
 /*

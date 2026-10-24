@@ -1,0 +1,161 @@
+/* HU033: pantalla de compras. Reutiliza las clases del formulario de producto. */
+
+/* Agrupa secciones sin dibujar un segundo borde */
+.ComprasBloque {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+}
+
+.Campo input[type='date'] {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px;
+}
+
+.CampoFila.ComprasFila2 {
+  grid-template-columns: 1fr;
+}
+
+.ComprasTotal {
+  font-size: 16px;
+}
+
+.ComprasArchivo {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--color-marron);
+  border-radius: 4px;
+  background-color: var(--color-marmol-claro);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+
+.ComprasArchivoNombre {
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.ComprasArchivoNombre button {
+  margin-left: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-marron);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .CampoFila.ComprasFila2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Listado */
+.ComprasFiltros {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ComprasFiltros input {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 4px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 14px;
+}
+
+.ComprasFiltros label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ComprasLista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+}
+
+.CompraItem {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+}
+
+.CompraTitulo {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.CompraMeta {
+  font-size: 14px;
+}
+
+.CompraAcciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.CompraDetalle {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-marmol-beige);
+  font-size: 14px;
+}
+
+.CompraTabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.CompraTabla th,
+.CompraTabla td {
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--color-marmol-beige);
+  text-align: left;
+}
+
+.CompraTabla .CompraNum {
+  text-align: right;
+}
+
+.CompraAdjuntar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .ComprasFiltros {
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+}

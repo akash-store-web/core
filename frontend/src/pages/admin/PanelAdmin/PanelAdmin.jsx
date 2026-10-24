@@ -137,7 +137,11 @@ function PanelAdmin() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [aviso, setAviso] = useState(location.state?.creado ?? null);
+  const [aviso, setAviso] = useState(() => {
+    if (location.state?.creado) return { tipo: 'creado', nombre: location.state.creado };
+    if (location.state?.editado) return { tipo: 'editado', nombre: location.state.editado };
+    return null;
+  });
   const [categorias, setCategorias] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [q, setQ] = useState('');
@@ -151,7 +155,7 @@ function PanelAdmin() {
 
   // Limpia el estado de navegación para que el aviso no reaparezca al recargar.
   useEffect(() => {
-    if (location.state?.creado) {
+    if (location.state?.creado || location.state?.editado) {
       navigate(location.pathname, { replace: true, state: null });
     }
   }, [location.state, location.pathname, navigate]);
@@ -231,10 +235,14 @@ function PanelAdmin() {
 
       {aviso && (
         <div className="PanelAviso" role="status">
-          <p>
-            Producto «{aviso}» guardado. Quedó <strong>sin publicar</strong>: actívalo cuando
-            quieras mostrarlo en el catálogo.
-          </p>
+          {aviso.tipo === 'creado' ? (
+            <p>
+              Producto «{aviso.nombre}» guardado. Quedó <strong>sin publicar</strong>: actívalo
+              cuando quieras mostrarlo en el catálogo.
+            </p>
+          ) : (
+            <p>Cambios en «{aviso.nombre}» guardados.</p>
+          )}
           <button type="button" onClick={() => setAviso(null)} aria-label="Cerrar aviso">
             ×
           </button>
@@ -316,6 +324,14 @@ function PanelAdmin() {
                 </button>
                 <span>{p.publicado ? 'Activo' : 'Inactivo'}</span>
               </label>
+
+              <Link
+                to={`/adminPanel/productos/${p.id}/editar`}
+                className="PanelBotonSecundario"
+                aria-label={`Editar ${p.nombre}`}
+              >
+                Editar
+              </Link>
 
               <button
                 type="button"

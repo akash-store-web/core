@@ -323,3 +323,10 @@
 .VarianteError {
   flex-basis: 100%;
 }
+
+/* HU032: el enlace «Editar» se ve igual que el botón secundario */
+a.PanelBotonSecundario {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

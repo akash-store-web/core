@@ -5,6 +5,8 @@ import RestablecerContrasena from "./pages/admin/RestablecerContrasena/Restablec
 import PanelAdmin from './pages/admin/PanelAdmin/PanelAdmin.jsx';
 import ProductoForm from './pages/admin/ProductoForm/ProductoForm.jsx';
 import EnviosAdmin from './pages/admin/Envios/EnviosAdmin.jsx';
+import ComprasAdmin from './pages/admin/Compras/ComprasAdmin.jsx';
+import CompraForm from './pages/admin/Compras/CompraForm.jsx';
 import HomePage from './pages/Home/HomePage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import './App.css';
@@ -29,6 +31,30 @@ function App() {
         element={
           <ProtectedRoute>
             <ProductoForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/adminPanel/productos/:id/editar"
+        element={
+          <ProtectedRoute>
+            <ProductoForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/adminPanel/compras"
+        element={
+          <ProtectedRoute>
+            <ComprasAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/adminPanel/compras/nueva"
+        element={
+          <ProtectedRoute>
+            <CompraForm />
           </ProtectedRoute>
         }
       />

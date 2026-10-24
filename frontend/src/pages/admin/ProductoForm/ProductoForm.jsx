@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../../components/AdminLayout.jsx';
-import { crearProducto, listarCategorias } from '../../../services/productosService.js';
+import {
+  actualizarProducto,
+  actualizarVariante,
+  crearProducto,
+  crearVariante,
+  eliminarImagen,
+  listarCategorias,
+  listarVariantes,
+  marcarImagenPrincipal,
+  obtenerProducto,
+  subirImagen,
+} from '../../../services/productosService.js';
 import './ProductoForm.css';
 
 const MAX_FOTOS = 5;
@@ -11,7 +22,6 @@ const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
 const FOTO_OBLIGATORIA = true;
 
 const REGEX_DECIMAL = /^\d+(\.\d{1,2})?$/;
-const REGEX_ENTERO = /^\d+$/;
 
 const FORM_INICIAL = {
   nombre: '',
@@ -22,13 +32,14 @@ const FORM_INICIAL = {
   medidas: '',
   peso_g: '',
   es_pieza_natural: false,
-  existencias: '0',
   propiedades: '',
 };
 
 let contadorId = 0;
 const nuevoId = () => ++contadorId;
-const nuevaVariante = () => ({ key: nuevoId(), nombre: '', precio: '', existencias: '0', propiedades: '' });
+// `id` = id en el backend (null mientras la variante es nueva). Las existencias NO se editan aquí.
+const nuevaVariante = () => ({ key: nuevoId(), id: null, nombre: '', precio: '', propiedades: '' });
+const NOMBRE_UNICA = 'Única';
 
 const limpiarDecimal = (texto) => texto.trim().replace(',', '.');
 const aTexto = (texto) => texto.trim() || null;
@@ -37,7 +48,7 @@ const aMonto = (texto) => {
   return limpio ? Number(limpio).toFixed(2) : null;
 };
 
-function validar({ form, tieneVariantes, variantes, fotos }) {
+function validar({ form, tieneVariantes, variantes, fotos, esEdicion }) {
   const e = {};
 
   if (!form.nombre.trim()) e.nombre = 'Ingresa el nombre del producto.';
@@ -60,7 +71,7 @@ function validar({ form, tieneVariantes, variantes, fotos }) {
     e.peso_g = 'Ingresa un peso mayor a 0, con hasta 2 decimales.';
   }
 
-  if (FOTO_OBLIGATORIA && fotos.length === 0) e.fotos = 'Sube al menos una fotografía.';
+  if (FOTO_OBLIGATORIA && !esEdicion && fotos.length === 0) e.fotos = 'Sube al menos una fotografía.';
 
   if (tieneVariantes) {
     variantes.forEach((v, i) => {
@@ -71,18 +82,14 @@ function validar({ form, tieneVariantes, variantes, fotos }) {
       if (precioVariante && (!REGEX_DECIMAL.test(precioVariante) || Number(precioVariante) <= 0)) {
         e[`variante_${i}_precio`] = 'Precio no válido.';
       }
-      if (!REGEX_ENTERO.test(v.existencias.trim())) {
-        e[`variante_${i}_existencias`] = 'Número entero, 0 o más.';
-      }
     });
-  } else if (!REGEX_ENTERO.test(form.existencias.trim())) {
-    e.existencias = 'Ingresa un número entero, 0 o más.';
   }
 
   return e;
 }
 
-function construirDatos({ form, tieneVariantes, variantes }) {
+// Datos del producto (sirve para crear con POST y para editar con PUT). Sin existencias.
+function datosProducto(form) {
   return {
     categoria_id: Number(form.categoria_id),
     nombre: form.nombre.trim(),
@@ -92,16 +99,21 @@ function construirDatos({ form, tieneVariantes, variantes }) {
     medidas: aTexto(form.medidas),
     peso_g: aMonto(form.peso_g),
     es_pieza_natural: form.es_pieza_natural,
-    existencias: Number(form.existencias.trim() || 0),
+  };
+}
+
+// Lo que viaja al backend por variante: nunca existencias (HU032 escenario 4).
+const cuerpoVariante = (v) => ({
+  nombre: v.nombre.trim(),
+  precio: aMonto(v.precio),
+  propiedades: aTexto(v.propiedades),
+});
+
+function construirDatos({ form, tieneVariantes, variantes }) {
+  return {
+    ...datosProducto(form),
     propiedades: aTexto(form.propiedades),
-    variantes: tieneVariantes
-      ? variantes.map((v) => ({
-          nombre: v.nombre.trim(),
-          precio: aMonto(v.precio),
-          existencias: Number(v.existencias.trim()),
-          propiedades: aTexto(v.propiedades),
-        }))
-      : [],
+    variantes: tieneVariantes ? variantes.map(cuerpoVariante) : [],
   };
 }
 
@@ -119,7 +131,40 @@ function Campo({ id, label, error, obligatorio, ayuda, children }) {
   );
 }
 
+// Con HU034 el stock nunca se escribe en este formulario: entra por compras o ajustes con motivo.
+// Al crear no hay nada que mostrar (todo nace con 0), solo el aviso; al editar se ve en solo lectura.
+function ExistenciasNota({ esEdicion }) {
+  return (
+    <p className="ExistenciasAviso">
+      {esEdicion
+        ? 'Las existencias son solo de lectura: cambian al registrar una compra o un ajuste de inventario.'
+        : 'El stock se carga registrando una compra.'}
+    </p>
+  );
+}
+
+// Producto sin variantes. Al editar muestra su única existencia sin permitir cambiarla.
+function ExistenciasLectura({ esEdicion, existencias }) {
+  if (!esEdicion) return <ExistenciasNota esEdicion={false} />;
+
+  return (
+    <div className="Campo">
+      <span className="ExistenciasEtiqueta">Existencias</span>
+      <p className="ExistenciasValor">
+        {existencias ?? 0}
+        <small> solo lectura</small>
+      </p>
+      <ExistenciasNota esEdicion />
+    </div>
+  );
+}
+
+// Convierte lo que devuelve el backend en lo que usa el formulario.
+const aTextoForm = (valor) => (valor === null || valor === undefined ? '' : String(valor));
+
 function ProductoForm() {
+  const { id } = useParams();
+  const esEdicion = Boolean(id);
   const navigate = useNavigate();
   const galeriaRef = useRef(null);
   const camaraRef = useRef(null);
@@ -135,6 +180,14 @@ function ProductoForm() {
   const [productoParcialId, setProductoParcialId] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
+  // Solo en edición (HU032)
+  const [cargandoProducto, setCargandoProducto] = useState(esEdicion);
+  const [errorCarga, setErrorCarga] = useState('');
+  const [fotosQuitadas, setFotosQuitadas] = useState([]); // ids de imágenes ya guardadas que se borrarán al guardar
+  const principalIdRef = useRef(null); // imagen que el backend tiene como principal
+  const [unica, setUnica] = useState(null); // variante «Única» original, si el producto no tiene variantes
+  const [conVariantesInicial, setConVariantesInicial] = useState(false);
+
   useEffect(() => {
     let activo = true;
     listarCategorias()
@@ -148,6 +201,60 @@ function ProductoForm() {
       activo = false;
     };
   }, []);
+
+  // HU032 escenarios 1, 2 y 4: carga los datos actuales del producto en el mismo formulario.
+  useEffect(() => {
+    if (!esEdicion) return undefined;
+    let activo = true;
+
+    Promise.all([obtenerProducto(id), listarVariantes(Number(id))])
+      .then(([producto, listaVariantes]) => {
+        if (!activo) return;
+
+        setForm({
+          nombre: producto.nombre,
+          categoria_id: String(producto.categoria_id),
+          descripcion: producto.descripcion,
+          precio_base: aTextoForm(producto.precio_base),
+          material: aTextoForm(producto.material),
+          medidas: aTextoForm(producto.medidas),
+          peso_g: aTextoForm(producto.peso_g),
+          es_pieza_natural: producto.es_pieza_natural,
+          propiedades: '',
+        });
+
+        const cargadas = listaVariantes.map((v) => ({
+          key: nuevoId(),
+          id: v.id,
+          nombre: v.nombre,
+          precio: aTextoForm(v.precio),
+          propiedades: aTextoForm(v.propiedades),
+          existencias: v.existencias, // solo lectura
+        }));
+        const soloUnica = cargadas.length === 1 && cargadas[0].nombre === NOMBRE_UNICA;
+        setConVariantesInicial(!soloUnica);
+        setUnica(soloUnica ? cargadas[0] : null);
+        setTieneVariantes(!soloUnica);
+        setVariantes(cargadas);
+        if (soloUnica) setForm((prev) => ({ ...prev, propiedades: cargadas[0].propiedades }));
+
+        const ordenadas = [...(producto.imagenes ?? [])].sort(
+          (a, b) => Number(b.es_principal) - Number(a.es_principal) || a.orden - b.orden,
+        );
+        principalIdRef.current = ordenadas.find((img) => img.es_principal)?.id ?? null;
+        setFotos(ordenadas.map((img) => ({ id: nuevoId(), imagenId: img.id, url: img.url, file: null })));
+      })
+      .catch((err) => {
+        if (activo) setErrorCarga(err.message);
+      })
+      .finally(() => {
+        if (activo) setCargandoProducto(false);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [esEdicion, id]);
 
   function limpiarError(clave) {
     setErrores((prev) => {
@@ -168,6 +275,23 @@ function ProductoForm() {
   function cambiarVariante(indice, campo, valor) {
     setVariantes((prev) => prev.map((v, i) => (i === indice ? { ...v, [campo]: valor } : v)));
     limpiarError(`variante_${indice}_${campo}`);
+  }
+
+  // En edición, un producto con una sola variante «Única» puede pasar a tener variantes:
+  // esa misma variante se renombra (no se pierde ni se duplica).
+  function alternarVariantes(activo) {
+    setTieneVariantes(activo);
+    if (!esEdicion || !unica) return;
+
+    if (activo) {
+      setVariantes((prev) =>
+        prev.map((v) => (v.id === unica.id ? { ...v, nombre: '', propiedades: form.propiedades } : v)),
+      );
+    } else {
+      const actual = variantes.find((v) => v.id === unica.id);
+      setForm((prev) => ({ ...prev, propiedades: actual?.propiedades ?? '' }));
+      setVariantes((prev) => prev.map((v) => (v.id === unica.id ? { ...v, nombre: unica.nombre } : v)));
+    }
   }
 
   function agregarVariante() {
@@ -210,7 +334,7 @@ function ProductoForm() {
         mensaje = `Máximo ${MAX_FOTOS} fotografías por producto.`;
         break;
       }
-      nuevas.push({ id: nuevoId(), file: archivo, url: URL.createObjectURL(archivo) });
+      nuevas.push({ id: nuevoId(), imagenId: null, file: archivo, url: URL.createObjectURL(archivo) });
     }
 
     if (nuevas.length > 0) setFotos((prev) => [...prev, ...nuevas]);
@@ -222,16 +346,18 @@ function ProductoForm() {
     });
   }
 
-  function quitarFoto(id) {
-    const foto = fotos.find((f) => f.id === id);
-    if (foto) URL.revokeObjectURL(foto.url);
-    setFotos((prev) => prev.filter((f) => f.id !== id));
+  function quitarFoto(fotoId) {
+    const foto = fotos.find((f) => f.id === fotoId);
+    if (foto?.file) URL.revokeObjectURL(foto.url);
+    // Una foto ya guardada no se borra hasta pulsar «Guardar cambios».
+    if (foto?.imagenId) setFotosQuitadas((prev) => [...prev, foto.imagenId]);
+    setFotos((prev) => prev.filter((f) => f.id !== fotoId));
   }
 
-  function hacerPrincipal(id) {
+  function hacerPrincipal(fotoId) {
     setFotos((prev) => {
-      const elegida = prev.find((f) => f.id === id);
-      return elegida ? [elegida, ...prev.filter((f) => f.id !== id)] : prev;
+      const elegida = prev.find((f) => f.id === fotoId);
+      return elegida ? [elegida, ...prev.filter((f) => f.id !== fotoId)] : prev;
     });
   }
 
@@ -246,29 +372,104 @@ function ProductoForm() {
     setErrores((prev) => ({ ...prev, ...porCampo }));
   }
 
+  function aplicarErroresVariante(indice, detalle) {
+    const porCampo = {};
+    detalle.forEach((item) => {
+      const campo = item.loc?.[1];
+      if (typeof campo === 'string') porCampo[`variante_${indice}_${campo}`] = item.msg;
+    });
+    setErrores((prev) => ({ ...prev, ...porCampo }));
+  }
+
+  /*
+    HU032: guarda los cambios paso a paso. Cada paso que termina bien queda reflejado en el
+    estado (la variante recibe su id, la foto deja de ser «nueva»...), así que si algo falla a
+    la mitad se puede volver a pulsar «Guardar cambios» sin duplicar nada.
+  */
+  async function guardarEdicion() {
+    // 1. Datos del producto
+    await actualizarProducto(Number(id), datosProducto(form));
+
+    // 2. Variantes: se renombran/actualizan las existentes y se agregan las nuevas (sin tocar las demás)
+    if (tieneVariantes) {
+      const lista = [...variantes];
+      for (let i = 0; i < lista.length; i += 1) {
+        const v = lista[i];
+        try {
+          if (v.id) {
+            await actualizarVariante(Number(id), v.id, cuerpoVariante(v));
+          } else {
+            const creada = await crearVariante(Number(id), cuerpoVariante(v));
+            lista[i] = { ...v, id: creada.id, existencias: 0 };
+            setVariantes((prev) => prev.map((x) => (x.key === v.key ? lista[i] : x)));
+          }
+        } catch (err) {
+          if (Array.isArray(err.detail)) aplicarErroresVariante(i, err.detail);
+          throw err;
+        }
+      }
+    } else if (unica) {
+      await actualizarVariante(Number(id), unica.id, {
+        nombre: unica.nombre,
+        precio: aMonto(unica.precio),
+        propiedades: aTexto(form.propiedades),
+      });
+    }
+
+    // 3. Fotos: primero se quitan, luego se suben las nuevas y al final se fija la principal
+    for (const imagenId of [...fotosQuitadas]) {
+      await eliminarImagen(Number(id), imagenId);
+      if (principalIdRef.current === imagenId) principalIdRef.current = null;
+      setFotosQuitadas((prev) => prev.filter((x) => x !== imagenId));
+    }
+
+    const lista = [...fotos];
+    for (let i = 0; i < lista.length; i += 1) {
+      const foto = lista[i];
+      if (!foto.file) continue;
+      const subida = await subirImagen(Number(id), foto.file);
+      URL.revokeObjectURL(foto.url);
+      lista[i] = { ...foto, imagenId: subida.id, url: subida.url, file: null };
+      setFotos((prev) => prev.map((x) => (x.id === foto.id ? lista[i] : x)));
+    }
+
+    const deseada = lista[0]?.imagenId;
+    if (deseada && deseada !== principalIdRef.current) {
+      await marcarImagenPrincipal(Number(id), deseada);
+      principalIdRef.current = deseada;
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (guardando) return;
 
     setErrorGeneral('');
-    const encontrados = validar({ form, tieneVariantes, variantes, fotos });
+    const encontrados = validar({ form, tieneVariantes, variantes, fotos, esEdicion });
     setErrores(encontrados);
 
     if (Object.keys(encontrados).length > 0) {
-      // Escenario 2: se marca en rojo lo que falta y se conserva lo ya escrito.
+      // Escenario 3: se marca en rojo lo que falta o está mal y se conserva lo ya escrito.
       setTimeout(() => document.querySelector('.campo-invalido')?.focus(), 0);
       return;
     }
 
     setGuardando(true);
     try {
-      await crearProducto(
-        construirDatos({ form, tieneVariantes, variantes }),
-        fotos.map((f) => f.file),
-      );
-      navigate('/adminPanel', { state: { creado: form.nombre.trim() } });
+      if (esEdicion) {
+        await guardarEdicion();
+        navigate('/adminPanel', { state: { editado: form.nombre.trim() } });
+      } else {
+        await crearProducto(
+          construirDatos({ form, tieneVariantes, variantes }),
+          fotos.map((f) => f.file),
+        );
+        navigate('/adminPanel', { state: { creado: form.nombre.trim() } });
+      }
     } catch (err) {
-      setErrorGeneral(err.message);
+      setErrorGeneral(
+        esEdicion ? `No se pudieron guardar todos los cambios: ${err.message}` : err.message,
+      );
       if (err.productoId) setProductoParcialId(err.productoId);
       if (Array.isArray(err.detail)) aplicarErroresServidor(err.detail);
     } finally {
@@ -278,11 +479,24 @@ function ProductoForm() {
 
   const clase = (clave) => (errores[clave] ? 'campo-invalido' : '');
 
+  if (esEdicion && (cargandoProducto || errorCarga)) {
+    return (
+      <AdminLayout>
+        <div className="FormCabecera">
+          <Link to="/adminPanel" className="FormVolver">← Volver al listado</Link>
+          <h1 className="FormTitulo">Editar producto</h1>
+        </div>
+        {cargandoProducto && <p className="CampoAyuda">Cargando producto...</p>}
+        {errorCarga && <p className="FormErrorGeneral" role="alert">{errorCarga}</p>}
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
       <div className="FormCabecera">
         <Link to="/adminPanel" className="FormVolver">← Volver al listado</Link>
-        <h1 className="FormTitulo">Nuevo producto</h1>
+        <h1 className="FormTitulo">{esEdicion ? 'Editar producto' : 'Nuevo producto'}</h1>
       </div>
 
       <form className="FormProducto" onSubmit={handleSubmit} noValidate>
@@ -423,7 +637,7 @@ function ProductoForm() {
         <fieldset className="FormSeccion">
           <legend>Fotografías</legend>
           <p className="CampoAyuda">
-            De 1 a {MAX_FOTOS} fotos (JPG, PNG o WEBP, máximo {MAX_MB} MB cada una). La primera es
+            {esEdicion ? 'Hasta' : 'De 1 a'} {MAX_FOTOS} fotos (JPG, PNG o WEBP, máximo {MAX_MB} MB cada una). La primera es
             la imagen principal del catálogo.
           </p>
 
@@ -475,6 +689,7 @@ function ProductoForm() {
                 <li key={foto.id} className="FotoItem">
                   <img src={foto.url} alt={`Foto ${indice + 1}`} />
                   {indice === 0 && <span className="FotoPrincipal">Principal</span>}
+                  {foto.file && esEdicion && <span className="FotoNueva">Nueva</span>}
                   <div className="FotoBotones">
                     {indice !== 0 && (
                       <button type="button" onClick={() => hacerPrincipal(foto.id)}>
@@ -491,46 +706,35 @@ function ProductoForm() {
 
         {/* ---- Existencias y variantes (HU027) ---- */}
         <fieldset className="FormSeccion">
-          <legend>Existencias y variantes</legend>
+          <legend>Variantes</legend>
 
           <label className="CampoCheck">
             <input
               type="checkbox"
               checked={tieneVariantes}
-              onChange={(e) => setTieneVariantes(e.target.checked)}
+              disabled={esEdicion && conVariantesInicial}
+              onChange={(e) => alternarVariantes(e.target.checked)}
             />
             <span>Este producto tiene variantes (piedras, aromas, tamaños…)</span>
           </label>
 
           {!tieneVariantes ? (
-            <Campo
-              id="campo-existencias"
-              label="Existencias"
-              error={errores.existencias}
-              ayuda="Un producto sin variantes se administra con una sola existencia."
-            >
-              <input
-                id="campo-existencias"
-                className={clase('existencias')}
-                type="text"
-                inputMode="numeric"
-                value={form.existencias}
-                onChange={(e) => cambiar('existencias', e.target.value)}
-                aria-invalid={Boolean(errores.existencias)}
-              />
-            </Campo>
+            <ExistenciasLectura
+              esEdicion={esEdicion}
+              existencias={unica?.existencias}
+            />
           ) : (
             <>
               <p className="CampoAyuda">
-                Cada variante lleva sus propias existencias. Si dejas el precio vacío, usa el
-                precio base.
+                Si dejas el precio de una variante vacío, usa el precio base.
               </p>
+              <ExistenciasNota esEdicion={esEdicion} />
               <ul className="VariantesForm">
                 {variantes.map((v, i) => (
                   <li key={v.key} className="VarianteForm">
                     <div className="VarianteFormTitulo">
                       <strong>Variante {i + 1}</strong>
-                      {variantes.length > 1 && (
+                      {variantes.length > 1 && !v.id && (
                         <button type="button" onClick={() => quitarVariante(v.key)}>
                           Quitar
                         </button>
@@ -573,21 +777,16 @@ function ProductoForm() {
                         />
                       </Campo>
 
-                      <Campo
-                        id={`campo-variante_${i}_existencias`}
-                        label="Existencias"
-                        error={errores[`variante_${i}_existencias`]}
-                      >
-                        <input
-                          id={`campo-variante_${i}_existencias`}
-                          className={clase(`variante_${i}_existencias`)}
-                          type="text"
-                          inputMode="numeric"
-                          value={v.existencias}
-                          onChange={(e) => cambiarVariante(i, 'existencias', e.target.value)}
-                          aria-invalid={Boolean(errores[`variante_${i}_existencias`])}
-                        />
-                      </Campo>
+                      {/* Solo las variantes ya guardadas tienen existencias que mostrar */}
+                      {v.id && (
+                        <div className="Campo">
+                          <span className="ExistenciasEtiqueta">Existencias</span>
+                          <p className="ExistenciasValor" aria-label={`Existencias de ${v.nombre}`}>
+                            {v.existencias}
+                            <small> solo lectura</small>
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <Campo id={`campo-variante_${i}_propiedades`} label="Propiedades atribuidas">
@@ -610,10 +809,16 @@ function ProductoForm() {
         </fieldset>
 
         {/* ---- Guardar ---- */}
-        <p className="FormNota">
-          El producto se guardará como <strong>no publicado</strong>. Podrás publicarlo desde el
-          listado cuando esté listo.
-        </p>
+        {esEdicion ? (
+          <p className="FormNota">
+            Guardar no cambia si el producto está publicado ni sus existencias.
+          </p>
+        ) : (
+          <p className="FormNota">
+            El producto se guardará como <strong>no publicado</strong>. Podrás publicarlo desde el
+            listado cuando esté listo.
+          </p>
+        )}
 
         {errorGeneral && (
           <div className="FormErrorGeneral" role="alert">
@@ -630,7 +835,7 @@ function ProductoForm() {
             className="FormBotonPrimario"
             disabled={guardando || Boolean(productoParcialId)}
           >
-            {guardando ? 'Guardando...' : 'Guardar producto'}
+            {guardando ? 'Guardando...' : esEdicion ? 'Guardar cambios' : 'Guardar producto'}
           </button>
           <Link to="/adminPanel" className="FormCancelar">Cancelar</Link>
         </div>
