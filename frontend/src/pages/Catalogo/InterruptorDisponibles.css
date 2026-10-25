@@ -1,0 +1,65 @@
+.Disponibles {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 1rem;
+}
+
+.Disponibles__etiqueta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-marron, #5a3e2b);
+}
+
+.Disponibles__entrada {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.Disponibles__pista {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-marmol-beige, #d9cfc3);
+  transition: background 0.2s;
+}
+
+.Disponibles__pista::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-blanco, #ffffff);
+  transition: transform 0.2s;
+}
+
+.Disponibles__entrada:checked + .Disponibles__pista {
+  background: var(--color-marron, #5a3e2b);
+}
+
+.Disponibles__entrada:checked + .Disponibles__pista::after {
+  transform: translateX(20px);
+}
+
+.Disponibles__entrada:focus-visible + .Disponibles__pista {
+  outline: 2px solid var(--color-marron, #5a3e2b);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Disponibles__pista,
+  .Disponibles__pista::after {
+    transition: none;
+  }
+}
