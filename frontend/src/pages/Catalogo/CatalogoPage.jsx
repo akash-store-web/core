@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { listarCatalogo } from '../../services/catalogoService.js';
 import ProductoCard from './ProductoCard.jsx';
+import InterruptorDisponibles from './InterruptorDisponibles.jsx';
 import './Catalogo.css';
 
 // Si tarda más que esto, se avisa que el servidor se está activando (E6, Render).
@@ -11,6 +12,7 @@ function CatalogoPage() {
   // fase: 'cargando' | 'listo' | 'error'
   const [estado, setEstado] = useState({ fase: 'cargando', productos: [] });
   const [lento, setLento] = useState(false);
+  const [soloDisponibles, setSoloDisponibles] = useState(false); // HU029: ocultar los agotados
   const [intento, setIntento] = useState(0); // al cambiar, se vuelve a pedir el catálogo
 
   useEffect(() => {
@@ -42,6 +44,7 @@ function CatalogoPage() {
   }
 
   const { fase, productos } = estado;
+  const visibles = soloDisponibles ? productos.filter((p) => p.disponible) : productos;
 
   return (
     <section className="Catalogo" aria-labelledby="catalogo-titulo">
@@ -96,10 +99,21 @@ function CatalogoPage() {
         </div>
       )}
 
+      {fase === 'listo' && productos.length > 0 && (
+        <InterruptorDisponibles activo={soloDisponibles} onCambio={setSoloDisponibles} />
+      )}
+
+      {fase === 'listo' && productos.length > 0 && visibles.length === 0 && (
+        <div className="Catalogo__aviso" role="status">
+          <p className="Catalogo__avisoTitulo">Ahora mismo no hay productos disponibles</p>
+          <p>Desactiva el filtro para ver los agotados.</p>
+        </div>
+      )}
+
       {/* Escenario 1: listado */}
       {fase === 'listo' && productos.length > 0 && (
         <ul className="Catalogo__grilla">
-          {productos.map((producto) => (
+          {visibles.map((producto) => (
             <li key={producto.id}>
               <ProductoCard producto={producto} />
             </li>
