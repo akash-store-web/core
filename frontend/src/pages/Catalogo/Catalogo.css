@@ -1,0 +1,249 @@
+/* ===== Catálogo público =====
+   Inspirado en la grilla de colecciones de referencia: título centrado,
+   2 columnas en celular, 3 en tablet/escritorio y 4 en pantallas anchas,
+   fotos verticales con esquinas redondeadas y texto alineado a la izquierda. */
+
+.Catalogo__cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.Catalogo__conteo {
+  margin-top: 12px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: var(--color-marron);
+}
+
+/* ----- Grilla ----- */
+.Catalogo__grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* minmax(0,…) evita que un texto largo ensanche la columna */
+  gap: 24px 12px;
+  list-style: none;
+}
+
+/* ----- Tarjeta ----- */
+.ProductoCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Enlace a la ficha: ocupa toda la tarjeta y no se ve como un link azul */
+.ProductoCard__enlace {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ProductoCard__enlace:hover .ProductoCard__nombre {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ProductoCard__foto {
+  position: relative;
+  aspect-ratio: 3 / 4; /* foto vertical, como la referencia y como las fotos reales (918×1200) */
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: var(--color-blanco);
+}
+
+.ProductoCard__foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* "contain" muestra la foto completa sin recortarla (Escenario 2) */
+  object-fit: contain;
+  transition: transform 0.4s ease;
+}
+
+/* La imagen genérica (AKASH-74) sí puede recortarse por los lados para llenar el marco */
+.ProductoCard__foto img.ProductoCard__img--generica {
+  object-fit: cover;
+}
+
+.ProductoCard:hover .ProductoCard__foto img {
+  transform: scale(1.03);
+}
+
+.ProductoCard__etiqueta {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background-color: var(--color-negro-calido);
+  color: var(--color-blanco);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.ProductoCard__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+}
+
+.ProductoCard__nombre {
+  /* E8: máximo 2 líneas y luego "…" */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere; /* palabras sin espacios tampoco rompen la tarjeta */
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--color-negro-calido);
+}
+
+.ProductoCard__precio {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-marron);
+}
+
+.ProductoCard__desde {
+  font-weight: 400;
+}
+
+/* ----- Estados: carga, vacío y error ----- */
+.Catalogo__estadoCarga {
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--color-marron);
+}
+
+.ProductoCard--esqueleto .ProductoCard__foto,
+.Esqueleto {
+  background: linear-gradient(
+    90deg,
+    var(--color-marmol-beige) 0%,
+    var(--color-blanco) 50%,
+    var(--color-marmol-beige) 100%
+  );
+  background-size: 200% 100%;
+  animation: Esqueleto-brillo 1.4s ease-in-out infinite;
+}
+
+.Esqueleto {
+  display: block;
+  height: 12px;
+  border-radius: 6px;
+}
+
+.Esqueleto--texto {
+  width: 90%;
+}
+
+.Esqueleto--corto {
+  width: 40%;
+}
+
+@keyframes Esqueleto-brillo {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* Quien desactivó las animaciones en su sistema no ve el brillo */
+@media (prefers-reduced-motion: reduce) {
+  .ProductoCard--esqueleto .ProductoCard__foto,
+  .Esqueleto {
+    animation: none;
+  }
+
+  .ProductoCard__foto img {
+    transition: none;
+  }
+}
+
+.Catalogo__aviso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 480px;
+  margin: 16px auto 0;
+  padding: 32px 20px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 12px;
+  background-color: var(--color-blanco);
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--color-negro-calido);
+}
+
+.Catalogo__avisoTitulo {
+  font-family: var(--font-title);
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--color-marron);
+}
+
+/* Botón de contorno redondeado, como los de la referencia */
+.Catalogo__boton {
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 28px;
+  border: 1px solid var(--color-marron);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.Catalogo__boton:hover {
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.Catalogo__boton:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+/* ===== Tablet y escritorio ===== */
+@media (min-width: 768px) {
+  .Catalogo__cabecera {
+    margin-bottom: 40px;
+  }
+
+  .Catalogo__grilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 40px 24px;
+  }
+
+  .ProductoCard__nombre,
+  .ProductoCard__precio {
+    font-size: 15px;
+  }
+}
+
+/* Pantallas anchas: 4 columnas */
+@media (min-width: 1100px) {
+  .Catalogo__grilla {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -8,13 +8,22 @@ import EnviosAdmin from './pages/admin/Envios/EnviosAdmin.jsx';
 import ComprasAdmin from './pages/admin/Compras/ComprasAdmin.jsx';
 import CompraForm from './pages/admin/Compras/CompraForm.jsx';
 import HomePage from './pages/Home/HomePage.jsx';
+import CatalogoPage from './pages/Catalogo/CatalogoPage.jsx';
+import FichaProductoPage from './pages/Catalogo/FichaProductoPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import PublicLayout from './components/PublicLayout.jsx';
 import './App.css';
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      {/* Páginas públicas: comparten cabecera y pie (PublicLayout + <Outlet />) */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/catalogo" element={<CatalogoPage />} />
+        <Route path="/catalogo/:id" element={<FichaProductoPage />} />
+      </Route>
+
       <Route path="/admin" element={<Login />} />
       <Route path="/recuperar" element={<RecuperarContrasena />} />
       <Route path="/restablecer" element={<RestablecerContrasena />} />
