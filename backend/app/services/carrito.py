@@ -39,13 +39,16 @@ def validar_carrito(db: Session, carrito: CarritoIn) -> CarritoOut:
     items = []
     for variante_id, cantidad in pedidas.items():
         variante = variantes.get(variante_id)
-        if variante is None or not variante.producto.publicado:
+        if variante is None or not variante.producto.publicado or not variante.activa:
+            # HU028 E8: una variante retirada (activa=false) ya no se vende aunque el producto siga publicado.
+            mensaje = ("Esta variante ya no está disponible; quítala del pedido"
+                       if variante is not None and variante.producto.publicado
+                       else "Este producto ya no está disponible; quítalo del pedido")
             items.append(ItemCarritoOut(
                 variante_id=variante_id, producto_id=variante.producto_id if variante else None,
                 producto=variante.producto.nombre if variante else None, variante=variante.nombre if variante else None,
                 es_pieza_natural=False, cantidad=cantidad, estado="no_disponible", cantidad_maxima=0,
-                precio_unitario=None, subtotal=Decimal("0.00"),
-                mensaje="Este producto ya no está disponible; quítalo del pedido",
+                precio_unitario=None, subtotal=Decimal("0.00"), mensaje=mensaje,
             ))
             continue
 

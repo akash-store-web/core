@@ -6,10 +6,11 @@ import httpx
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import config
 from app.models.imagen import Imagen
 from app.services import storage
 from app.services.optimizar_imagen import optimizar
-from app.services.productos import obtener_producto
+from app.services.productos import marcar_modificado, obtener_producto
 
 log = logging.getLogger("akash.imagenes")
 
@@ -61,6 +62,7 @@ def subir_imagen(db: Session, producto_id: int, contenido: bytes) -> Imagen:
         es_principal=not producto.imagenes,  # la primera foto queda como principal
     )
     db.add(imagen)
+    marcar_modificado(producto)
     try:
         db.commit()
     except Exception:
@@ -75,6 +77,7 @@ def marcar_principal(db: Session, producto_id: int, imagen_id: int) -> list[Imag
     elegida = _obtener_imagen(db, producto_id, imagen_id)
     for imagen in elegida.producto.imagenes:
         imagen.es_principal = imagen.id == elegida.id
+    marcar_modificado(elegida.producto)
     db.commit()
     return obtener_producto(db, producto_id).imagenes
 
@@ -82,6 +85,12 @@ def marcar_principal(db: Session, producto_id: int, imagen_id: int) -> list[Imag
 def eliminar_imagen(db: Session, producto_id: int, imagen_id: int) -> None:
     imagen = _obtener_imagen(db, producto_id, imagen_id)
     producto = imagen.producto
+    if config.PUBLICAR_EXIGE_FOTO and producto.publicado and len(producto.imagenes) == 1:
+        # T-07 (HU014 E8): un producto publicado no puede quedarse sin foto si la regla está activa.
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "No se puede eliminar la única foto de un producto publicado; sube otra antes o despublícalo",
+        )
     era_principal = imagen.es_principal
     ruta = storage.ruta_desde_url(imagen.url)
     db.delete(imagen)
@@ -90,6 +99,7 @@ def eliminar_imagen(db: Session, producto_id: int, imagen_id: int) -> None:
         restantes = [i for i in producto.imagenes if i.id != imagen_id]
         if restantes:
             min(restantes, key=lambda i: i.orden).es_principal = True
+    marcar_modificado(producto)
     db.commit()
     if ruta:
         try:

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_admin
 from app.models.categoria import Categoria
-from app.schemas.producto import CategoriaOut, ProductoCrear, ProductoIn, ProductoListItem, ProductoOut, PublicadoIn
+from app.schemas.producto import CategoriaOut, ProductoCrear, ProductoEditar, ProductoListItem, ProductoOut, PublicadoIn
 from app.services import productos as servicio
 
 router = APIRouter(prefix="/admin", tags=["admin: productos"], dependencies=[Depends(get_current_admin)])
@@ -22,6 +22,7 @@ def listar_productos(q: str | None = None, categoria_id: int | None = None, db: 
 
 @router.post("/productos", response_model=ProductoOut, status_code=status.HTTP_201_CREATED)
 def crear_producto(datos: ProductoCrear, db: Session = Depends(get_db)):
+    """409 si ya existe un producto con ese nombre en la categoría."""
     return servicio.crear_producto(db, datos)
 
 
@@ -31,7 +32,8 @@ def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/productos/{producto_id}", response_model=ProductoOut)
-def actualizar_producto(producto_id: int, datos: ProductoIn, db: Session = Depends(get_db)):
+def actualizar_producto(producto_id: int, datos: ProductoEditar, db: Session = Depends(get_db)):
+    """409 si el nombre ya existe en la categoría, o si llega `actualizado_en` y otra persona guardó antes."""
     return servicio.actualizar_producto(db, producto_id, datos)
 
 
