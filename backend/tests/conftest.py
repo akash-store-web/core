@@ -35,6 +35,15 @@ CATEGORIAS = [
 HASH_PRUEBA = hash_password("clave-segura")
 
 
+@pytest.fixture(autouse=True)
+def limites_en_cero():
+    """Los límites de intentos (services/limites.py) viven en memoria: cada prueba empieza de cero."""
+    from app.services.limites import bloqueo_login, limite_recuperar
+    bloqueo_login.reiniciar()
+    limite_recuperar.reiniciar()
+    yield
+
+
 @pytest.fixture
 def engine():
     # SQLite en memoria, solo para pruebas: create_all aquí no toca la base compartida.

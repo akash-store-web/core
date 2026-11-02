@@ -11,13 +11,21 @@ def _cabe_en_bcrypt(valor: str) -> str:
     return valor
 
 
-# Política mínima de contraseñas (la misma de scripts/crear_propietaria.py).
-NuevaContrasena = Annotated[str, StringConstraints(min_length=8), AfterValidator(_cabe_en_bcrypt)]
+def _letra_y_numero(valor: str) -> str:
+    # T-07 (HU024 E5): al menos una letra y un número.
+    if not any(c.isalpha() for c in valor) or not any(c.isdigit() for c in valor):
+        raise ValueError("La contraseña debe tener al menos una letra y un número")
+    return valor
+
+
+# Política de contraseñas (la misma de scripts/crear_propietaria.py): mínimo 8, con letra y número.
+NuevaContrasena = Annotated[str, StringConstraints(min_length=8), AfterValidator(_letra_y_numero),
+                            AfterValidator(_cabe_en_bcrypt)]
 
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=1)  # vacía = 422, sin consultar la base (HU023 E5)
 
 
 class TokenResponse(BaseModel):

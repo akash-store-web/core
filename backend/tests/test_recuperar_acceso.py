@@ -10,7 +10,7 @@ from app.services import correo
 from app.services.auth import huella_password
 from tests.conftest import HASH_PRUEBA, TEST_SECRET
 
-NUEVA = "nueva-clave-segura"
+NUEVA = "nueva-clave-segura1"
 
 
 @pytest.fixture
@@ -81,7 +81,7 @@ def test_el_enlace_es_de_un_solo_uso(client, enlaces):
     client.post("/auth/recuperar", json={"email": "duena@example.com"})
     token = _token_de(enlaces[0][1])
     assert _restablecer(client, token).status_code == 200
-    assert _restablecer(client, token, "otra-clave-segura").status_code == 400
+    assert _restablecer(client, token, "otra-clave-segura2").status_code == 400
 
 
 def test_enlace_vencido_o_manipulado(client):
@@ -109,7 +109,30 @@ def test_politica_de_contrasena(client, enlaces):
     client.post("/auth/recuperar", json={"email": "duena@example.com"})
     token = _token_de(enlaces[0][1])
     assert _restablecer(client, token, "corta").status_code == 422
-    assert _restablecer(client, token, "ñ" * 40).status_code == 422  # 80 bytes > límite de bcrypt
+    assert _restablecer(client, token, "ñ" * 39 + "1").status_code == 422  # 79 bytes > límite de bcrypt
+    # T-07 (HU024 E5): al menos una letra y un número
+    sin_numero = _restablecer(client, token, "solo-letras")
+    assert sin_numero.status_code == 422
+    assert "al menos una letra y un número" in sin_numero.text
+    assert _restablecer(client, token, "12345678").status_code == 422
+    assert _restablecer(client, token, "letras1234").status_code == 200
+
+
+# --- T-07 (HU024 E8): solicitudes repetidas ---
+
+def test_maximo_tres_enlaces_por_correo_por_hora(client, enlaces, monkeypatch):
+    from app.services import limites
+    reloj = [1_000_000.0]
+    monkeypatch.setattr(limites, "_ahora", lambda: reloj[0])
+    respuestas = [client.post("/auth/recuperar", json={"email": "duena@example.com"}) for _ in range(4)]
+    assert [r.status_code for r in respuestas] == [202] * 4
+    assert len({r.text for r in respuestas}) == 1  # la cuarta responde igual…
+    assert len(enlaces) == 3  # …pero no envía correo
+    # Otro correo no se ve afectado
+    client.post("/auth/recuperar", json={"email": "otra@example.com"})
+    reloj[0] += 60 * 60 + 1  # pasada la hora, vuelve a enviar
+    client.post("/auth/recuperar", json={"email": "duena@example.com"})
+    assert len(enlaces) == 4
 
 
 # --- PUT /auth/contrasena ---
@@ -123,15 +146,16 @@ def test_cambiar_contrasena_con_sesion(client, auth):
 def test_cambiar_contrasena_validaciones(client, auth):
     assert client.put("/auth/contrasena", json={"actual": "clave-segura", "nueva": NUEVA}).status_code == 401
     assert client.put("/auth/contrasena", json={"actual": "mala", "nueva": NUEVA}, headers=auth).status_code == 400
-    assert client.put("/auth/contrasena", json={"actual": "clave-segura", "nueva": "clave-segura"},
-                      headers=auth).status_code == 400
-    assert client.put("/auth/contrasena", json={"actual": "clave-segura", "nueva": "corta"}, headers=auth).status_code == 422
+    # Igual a la actual: se prueba tras cambiarla a una que cumple la política (letra y número).
+    assert client.put("/auth/contrasena", json={"actual": "clave-segura", "nueva": NUEVA}, headers=auth).status_code == 200
+    assert client.put("/auth/contrasena", json={"actual": NUEVA, "nueva": NUEVA}, headers=auth).status_code == 400
+    assert client.put("/auth/contrasena", json={"actual": NUEVA, "nueva": "corta1"}, headers=auth).status_code == 422
 
 
 def test_cambiar_contrasena_invalida_enlaces_pendientes(client, auth, enlaces):
     client.post("/auth/recuperar", json={"email": "duena@example.com"})
     client.put("/auth/contrasena", json={"actual": "clave-segura", "nueva": NUEVA}, headers=auth)
-    assert _restablecer(client, _token_de(enlaces[0][1]), "otra-clave-segura").status_code == 400
+    assert _restablecer(client, _token_de(enlaces[0][1]), "otra-clave-segura2").status_code == 400
 
 
 # --- Corrección en el login (HU023) ---
