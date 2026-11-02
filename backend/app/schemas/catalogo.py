@@ -18,9 +18,9 @@ class ProductoCatalogo(BaseModel):
     nombre: str
     categoria_id: int
     categoria: str
-    precio: PrecioOut  # el menor precio entre sus variantes
-    precio_desde: bool  # True si las variantes tienen precios distintos: mostrar "Desde S/ …"
-    disponible: bool  # False = "Agotado" (todas sus variantes en 0)
+    precio: PrecioOut  # el menor precio entre sus variantes disponibles (si todas están agotadas, entre todas)
+    precio_desde: bool  # True si esas variantes tienen precios distintos: mostrar "Desde S/ …"
+    disponible: bool  # False = "Agotado" (ninguna variante con unidades libres, descontando reservas)
     es_pieza_natural: bool
     foto_principal: str  # nunca vacía: si no hay fotos reales, la imagen genérica
     foto_generica: bool  # True = aún no tiene fotos reales
@@ -31,6 +31,7 @@ class VariantePublica(BaseModel):
     nombre: str
     precio: PrecioOut
     disponible: bool
+    ultima_unidad: bool  # HU003 Esc.4: queda exactamente 1 unidad libre ("¡Última unidad!"); nunca la cantidad
     propiedades: str | None
 
 
