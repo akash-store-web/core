@@ -22,6 +22,8 @@ class VarianteEditar(BaseModel):
     nombre: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)] = Field(examples=["Cuarzo rosa"])
     precio: Precio | None = Field(None, examples=["32.00"])  # vacío = hereda el precio_base del producto
     propiedades: Annotated[str, StringConstraints(strip_whitespace=True)] | None = Field(None, examples=["Amor propio y armonía"])
+    # Opcional: true reactiva una variante retirada; false la retira sin borrar su historial. Si no llega, no cambia.
+    activa: bool | None = Field(None, examples=[True])
 
 
 class VarianteOut(BaseModel):
@@ -35,3 +37,12 @@ class VarianteOut(BaseModel):
     existencias: int
     agotado: bool
     propiedades: str | None
+    activa: bool  # False = retirada: no se vende ni se compra, pero conserva su historial
+
+
+class VarianteEliminada(BaseModel):
+    """DELETE de una variante con historial: no se borra, se desactiva (HU027 E9, HU032 E8)."""
+
+    desactivada: bool = Field(examples=[True])
+    variante: VarianteOut
+    detail: str

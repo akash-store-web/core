@@ -219,3 +219,25 @@ def test_tarjeta_y_ficha_no_exponen_costos_proveedores_ni_existencias(client, au
     # Las cantidades exactas (3 y 2) no aparecen como valores numéricos en la ficha
     assert all(not isinstance(v, int) or k == "id" for var in ficha["variantes"] for k, v in var.items()
                if not isinstance(v, bool))
+
+
+# ---------- HU028 E8: variantes desactivadas ----------
+
+def test_variante_desactivada_no_aparece_ni_cuenta_en_el_catalogo(client, auth):
+    """Una variante con historial se desactiva al eliminarla: la clienta no la ve en la ficha,
+    no cuenta para la disponibilidad ni para el precio «desde»."""
+    pid = _crear(client, auth, ANILLO, stock=0, publicar=False)
+    base = f"/admin/productos/{pid}/variantes"
+    jade = client.post(base, json={"nombre": "Jade", "precio": "90.00"}, headers=auth).json()["id"]
+    dar_stock(client, auth, _unica(client, auth, pid), 1)
+    dar_stock(client, auth, jade, 3)
+    assert client.patch(f"/admin/productos/{pid}/publicado", json={"publicado": True}, headers=auth).status_code == 200
+
+    r = client.delete(f"{base}/{jade}", headers=auth)
+    assert r.status_code == 200 and r.json()["desactivada"] is True
+
+    ficha = client.get(f"/catalogo/{pid}").json()
+    assert [v["id"] for v in ficha["variantes"]] == [_unica(client, auth, pid)]
+    assert ficha["precio"] == "40.00" and ficha["precio_desde"] is False
+    tarjeta = next(p for p in client.get("/catalogo").json() if p["id"] == pid)
+    assert tarjeta["precio_desde"] is False and tarjeta["disponible"] is True

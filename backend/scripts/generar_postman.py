@@ -74,17 +74,23 @@ items = [
             "Usa las variables `email` y `password` del entorno. Guarda `access_token` en `{{token}}`.",
             guardar_token, publico=True),
         req("Login con credenciales inválidas (401)", "POST", "/auth/login",
-            {"email": "{{email}}", "password": "incorrecta"}, "Debe responder 401 sin decir qué campo falló.",
+            {"email": "{{email}}", "password": "incorrecta"},
+            "Debe responder 401 sin decir qué campo falló. ⚠️ Tras 5 intentos fallidos en 15 min, el correo queda "
+            "bloqueado 15 min (429), también con la contraseña correcta.",
             codigo(401), publico=True),
+        req("Login con contraseña vacía (422)", "POST", "/auth/login", {"email": "{{email}}", "password": ""},
+            "422 sin consultar la base ni contar como intento fallido.", codigo(422), publico=True),
         req("Recuperar contraseña", "POST", "/auth/recuperar", {"email": "{{email}}"},
-            "Siempre 202, exista o no el correo. ⚠️ Si el correo existe, Brevo envía un correo real.",
+            "Siempre 202, exista o no el correo. Máximo 3 enlaces por correo por hora: desde la cuarta solicitud "
+            "responde igual pero no envía nada. ⚠️ Si el correo existe, Brevo envía un correo real.",
             codigo(202), publico=True),
         req("Restablecer contraseña", "POST", "/auth/restablecer",
-            {"token": "<pega aquí el token del enlace del correo>", "nueva_contrasena": "nueva-clave-segura"},
-            "El token sale del enlace `.../restablecer?token=...`. Vence en 30 min y sirve una vez. " + ESCRIBE,
+            {"token": "<pega aquí el token del enlace del correo>", "nueva_contrasena": "nueva-clave-segura1"},
+            "El token sale del enlace `.../restablecer?token=...`. Vence en 30 min y sirve una vez. "
+            "La nueva: mínimo 8 caracteres, con al menos una letra y un número (422 si no). " + ESCRIBE,
             publico=True),
         req("Cambiar contraseña (con sesión)", "PUT", "/auth/contrasena",
-            {"actual": "{{password}}", "nueva": "nueva-clave-segura"},
+            {"actual": "{{password}}", "nueva": "nueva-clave-segura1"},
             "⚠️ Cambia la contraseña real de la cuenta del entorno. Después actualiza `password` en el entorno."),
     ]),
     carpeta("2. Catálogo (público)", "Sin login. Solo productos publicados; nunca muestra existencias exactas.", [
@@ -124,7 +130,8 @@ items = [
             "categoria_id": 4, "nombre": "Anillo de prueba QA", "descripcion": "Producto creado desde Postman para pruebas.",
             "precio_base": "40.00", "material": "Plata 925", "medidas": "Piedra de 8 × 10 mm",
             "es_pieza_natural": True},
-            "Nace despublicado y con la variante \"Única\". Guarda el id en `{{producto_id}}`. " + ESCRIBE
+            "Nace despublicado y con la variante \"Única\". Guarda el id en `{{producto_id}}`. "
+            "409 si el nombre ya existe en la categoría. " + ESCRIBE
             + " No hay borrado de productos: despublícalo al terminar.",
             guardar("producto_id")),
         req("Crear producto sin obligatorios (422)", "POST", "/admin/productos", {"nombre": "Incompleto"},
@@ -133,9 +140,10 @@ items = [
         req("Editar producto", "PUT", "/admin/productos/{{producto_id}}", {
             "categoria_id": 4, "nombre": "Anillo de prueba QA", "descripcion": "Descripción editada desde Postman.",
             "precio_base": "42.00", "material": "Plata 925", "medidas": "Piedra de 8 × 10 mm", "es_pieza_natural": True},
-            "No cambia `publicado`. " + ESCRIBE, codigo(200)),
+            "No cambia `publicado`. Opcional: `actualizado_en` con el valor que devolvió el GET; si otra persona "
+            "guardó después, 409. 409 también si el nombre ya existe en la categoría. " + ESCRIBE, codigo(200)),
         req("Publicar", "PATCH", "/admin/productos/{{producto_id}}/publicado", {"publicado": True},
-            "409 si falta variante, o foto real cuando PUBLICAR_EXIGE_FOTO=true. " + ESCRIBE),
+            "409 si falta una variante activa, o foto real cuando PUBLICAR_EXIGE_FOTO=true. " + ESCRIBE),
         req("Despublicar", "PATCH", "/admin/productos/{{producto_id}}/publicado", {"publicado": False},
             "Siempre se permite. " + ESCRIBE, codigo(200)),
     ]),
@@ -146,17 +154,24 @@ items = [
                          'if (v.length) pm.collectionVariables.set("variante_id", v[0].id);')),
         req("Crear variante", "POST", "/admin/productos/{{producto_id}}/variantes",
             {"nombre": "Turmalina negra", "precio": None, "propiedades": "Se le atribuye protección."},
-            "`precio: null` hereda el precio_base. " + ESCRIBE, guardar("variante_id")),
+            "`precio: null` hereda el precio_base. 409 si el nombre ya existe en el producto; 422 si ya tiene "
+            "30 variantes activas. " + ESCRIBE, guardar("variante_id")),
         req("Editar variante (precio propio)", "PUT", "/admin/productos/{{producto_id}}/variantes/{{variante_id}}",
             {"nombre": "Amatista", "precio": "45.00", "propiedades": "Se le atribuye calma."},
             "Para la primera piedra, renombra la variante \"Única\". No cambia existencias (HU032). " + ESCRIBE, codigo(200)),
+        req("Reactivar variante", "PUT", "/admin/productos/{{producto_id}}/variantes/{{variante_id}}",
+            {"nombre": "Amatista", "precio": "45.00", "propiedades": "Se le atribuye calma.", "activa": True},
+            "`activa` es opcional: true reactiva una variante desactivada, false la retira. Si no llega, no cambia. "
+            + ESCRIBE, codigo(200)),
         req("Ajuste de stock con motivo", "POST", "/admin/variantes/{{variante_id}}/ajustes",
             {"cantidad": -1, "motivo": "Se rompió al empacar (prueba QA)"},
-            "HU034: cantidad con signo y motivo obligatorio. 409 si quedaría negativo. " + ESCRIBE, codigo(201)),
+            "HU034: cantidad con signo (distinta de 0, hasta ±10,000) y motivo de 3 a 200 caracteres. "
+            "409 si quedaría negativo. " + ESCRIBE, codigo(201)),
         req("Historial de la variante", "GET", "/admin/variantes/{{variante_id}}/movimientos", eventos=codigo(200)),
         req("Historial del producto", "GET", "/admin/productos/{{producto_id}}/movimientos", eventos=codigo(200)),
         req("Eliminar variante", "DELETE", "/admin/productos/{{producto_id}}/variantes/{{variante_id}}",
-            descripcion="204. 409 si es la última del producto o tiene pedidos. " + ESCRIBE),
+            descripcion="204 si no tenía historial. Con movimientos, compras o pedidos no se borra: se desactiva y "
+                        "responde 200 con `desactivada: true`. 409 si es la última variante activa. " + ESCRIBE),
     ]),
     carpeta("6. Panel: fotos 🔒", "JPG, PNG o WEBP; máx. 5 MB y 5 fotos por producto.", [
         req("Subir foto", "POST", "/admin/productos/{{producto_id}}/imagenes",
@@ -166,16 +181,22 @@ items = [
         req("Marcar como principal", "PATCH", "/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}/principal",
             descripcion=ESCRIBE, eventos=codigo(200)),
         req("Eliminar foto", "DELETE", "/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}",
-            descripcion="204. Si era la principal, pasa a serlo la siguiente. " + ESCRIBE, eventos=codigo(204)),
+            descripcion="204. Si era la principal, pasa a serlo la siguiente. 409 si es la única foto de un producto "
+                        "publicado y PUBLICAR_EXIGE_FOTO=true. " + ESCRIBE, eventos=codigo(204)),
     ]),
     carpeta("7. Panel: envíos 🔒", "Zonas con costo y distritos asignados (HU026).", [
         req("Zonas de envío", "GET", "/admin/zonas-envio", eventos=codigo(200)),
         req("Crear zona", "POST", "/admin/zonas-envio", {"nombre": "Zona de prueba QA", "costo": "10.00", "activa": True},
-            ESCRIBE, guardar("zona_id")),
+            "Nombre único de 3 a 60 caracteres (409 si se repite); costo de 0.00 a 999.99. " + ESCRIBE,
+            guardar("zona_id")),
         req("Editar zona", "PUT", "/admin/zonas-envio/{{zona_id}}", {"nombre": "Zona de prueba QA", "costo": "12.00", "activa": False},
-            "`activa: false` deja de atenderla sin borrarla. " + ESCRIBE, codigo(200)),
+            "`activa: false` deja de atenderla sin borrarla; la respuesta trae `distritos_sin_cobertura`. " + ESCRIBE,
+            codigo(200)),
         req("Asignar distritos a la zona", "PUT", "/admin/zonas-envio/{{zona_id}}/distritos", {"distrito_ids": ["{{distrito_id}}"]},
-            ESCRIBE, codigo(200)),
+            "409 con la lista de distritos y su zona actual si alguno ya está en otra zona. " + ESCRIBE),
+        req("Asignar distritos confirmando el traslado", "PUT", "/admin/zonas-envio/{{zona_id}}/distritos",
+            {"distrito_ids": ["{{distrito_id}}"], "confirmar_traslado": True},
+            "Mueve a esta zona los distritos aunque estén en otra (cambia su costo de envío). " + ESCRIBE, codigo(200)),
         req("Distritos", "GET", "/admin/distritos", eventos=codigo(200),
             query=[{"key": "sin_zona", "value": "true", "description": "solo los que no tienen cobertura"}]),
         req("Crear distrito", "POST", "/admin/distritos", {"nombre": "Distrito de prueba QA", "zona_envio_id": None},
@@ -188,7 +209,15 @@ items = [
             "proveedor": "Proveedor de prueba QA", "proveedor_ruc": "20512345678", "tipo_comprobante": "factura",
             "numero_comprobante": "F001-QA001", "fecha": "2026-10-14",
             "items": [{"variante_id": "{{variante_id}}", "cantidad": 2, "costo_unitario": "12.50"}]},
-            "Suma el stock de cada variante. 409 si el comprobante ya existe. " + ESCRIBE, guardar("compra_id")),
+            "Suma el stock de cada variante. 409 si el comprobante ya existe. La factura exige RUC (422). "
+            "Si hay un costo 0.00 o mayor al precio de venta: 409 con `detail.avisos`, salvo `confirmar_avisos: true`. "
+            + ESCRIBE, guardar("compra_id")),
+        req("Registrar compra sin comprobante", "POST", "/admin/compras", {
+            "proveedor": "Proveedor de prueba QA", "tipo_comprobante": "sin_comprobante", "fecha": "2026-10-14",
+            "items": [{"variante_id": "{{variante_id}}", "cantidad": 1, "costo_unitario": "0.00"}],
+            "confirmar_avisos": True},
+            "AKASH-152: sin `numero_comprobante`; el sistema asigna SC-0001, SC-0002… El costo 0.00 pide "
+            "`confirmar_avisos: true`. " + ESCRIBE, codigo(201)),
         req("Listado de compras", "GET", "/admin/compras", eventos=codigo(200),
             query=[{"key": "proveedor", "value": "", "description": "opcional"},
                    {"key": "desde", "value": "", "description": "AAAA-MM-DD (opcional)"},

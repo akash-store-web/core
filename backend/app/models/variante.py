@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -13,6 +13,9 @@ class Variante(Base):
     precio = Column(Numeric(10, 2))  # NULL = hereda producto.precio_base
     existencias = Column(Integer, nullable=False, default=0, server_default="0")
     propiedades = Column(Text)
+    # False = retirada: tiene historial (movimientos, compras o pedidos) y no se puede borrar.
+    # No se vende ni se compra, pero su historial se conserva (docs/sql/2026-11_sprint2_validaciones.sql).
+    activa = Column(Boolean, nullable=False, default=True, server_default="true")
 
     producto = relationship("Producto", back_populates="variantes")
 

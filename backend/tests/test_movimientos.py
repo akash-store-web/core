@@ -81,6 +81,26 @@ def test_el_stock_nunca_queda_negativo(client, auth, roll_on):
     assert len(client.get("/admin/variantes/1/movimientos", headers=auth).json()) == 1  # el rechazado no se guarda
 
 
+def test_ajuste_fuera_de_rango_o_con_motivo_largo(client, auth, roll_on):
+    """T-07 (HU034): |cantidad| ≤ 10,000, entera, y motivo de 3 a 200 caracteres."""
+    for datos in ({"cantidad": 10001, "motivo": "Conteo"}, {"cantidad": -10001, "motivo": "Conteo"},
+                  {"cantidad": 1.5, "motivo": "Conteo"}, {"cantidad": 1, "motivo": "x" * 201}):
+        assert _ajuste(client, auth, **datos).status_code == 422, datos
+    assert _existencias(client, auth, 1) == 0
+    assert _ajuste(client, auth, cantidad=10000, motivo="x" * 200).status_code == 201
+    assert _ajuste(client, auth, cantidad=-10000, motivo="Conteo final").status_code == 201
+
+
+def test_los_movimientos_no_se_editan_ni_se_borran(client, auth, roll_on):
+    """HU034: el historial es inmutable; no hay PUT ni DELETE sobre los movimientos."""
+    dar_stock(client, auth, 1, 2)
+    for metodo in ("put", "delete", "patch"):
+        assert getattr(client, metodo)("/admin/variantes/1/movimientos", headers=auth).status_code == 405
+        assert getattr(client, metodo)("/admin/productos/1/movimientos", headers=auth).status_code == 405
+        assert getattr(client, metodo)("/admin/variantes/1/ajustes", headers=auth).status_code == 405
+    assert _existencias(client, auth, 1) == 2
+
+
 def test_ajuste_de_variante_inexistente_y_sin_token(client, auth, roll_on):
     assert _ajuste(client, auth, variante_id=99, cantidad=1, motivo="Conteo").status_code == 404
     assert client.post("/admin/variantes/1/ajustes", json={"cantidad": 1, "motivo": "Conteo"}).status_code == 401

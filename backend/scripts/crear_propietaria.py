@@ -15,6 +15,8 @@ def main() -> None:
         raise SystemExit("Las contraseñas no coinciden.")
     if len(password) < 8:
         raise SystemExit("Usa al menos 8 caracteres.")
+    if not any(c.isalpha() for c in password) or not any(c.isdigit() for c in password):
+        raise SystemExit("Usa al menos una letra y un número.")
     if not email or "@" not in email:
         raise SystemExit("Ingresa un email válido.")
 

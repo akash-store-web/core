@@ -4,11 +4,11 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import Integer, cast, func, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.compra import Compra, DetalleCompra
+from app.models.compra import Compra, DetalleCompra, TipoComprobante
 from app.models.movimiento_stock import TipoMovimiento
 from app.models.variante import Variante
 from app.schemas.compra import CompraIn, CompraOut, CompraResumen, IngresoPorCompra, LineaCompraOut
@@ -26,19 +26,64 @@ def _existe_comprobante(db: Session, datos: CompraIn) -> bool:
     ).first() is not None
 
 
+def _siguiente_numero_interno(db: Session) -> str:
+    """HU033 E6 / AKASH-152: SC-0001, SC-0002… para las compras sin comprobante.
+
+    En Postgres se toma un candado de la transacción antes de leer el último número: dos compras
+    simultáneas no pueden obtener el mismo correlativo (el índice único incluye al proveedor y no lo evitaría)."""
+    if db.get_bind().dialect.name == "postgresql":
+        db.execute(text("SELECT pg_advisory_xact_lock(hashtext('compra_sin_comprobante'))"))
+    prefijo = TipoComprobante.PREFIJO_INTERNO
+    ultimo = db.query(func.max(cast(func.substr(Compra.numero_comprobante, len(prefijo) + 1), Integer))).filter(
+        Compra.tipo_comprobante == TipoComprobante.SIN_COMPROBANTE,
+        Compra.numero_comprobante.like(f"{prefijo}%"),
+    ).scalar()
+    return f"{prefijo}{(ultimo or 0) + 1:04d}"
+
+
+def _avisos(datos: CompraIn, variantes: dict[int, Variante]) -> list[str]:
+    """HU033 E9 y E10: datos posibles pero raros, que la propietaria debe confirmar."""
+    avisos = []
+    for n, item in enumerate(datos.items, start=1):
+        variante = variantes[item.variante_id]
+        nombre = f"Línea {n} ({variante.producto.nombre} · {variante.nombre})"
+        precio = variante.precio_efectivo
+        if item.costo_unitario == 0:
+            avisos.append(f"{nombre}: el costo unitario es 0.00; confirma si fue un obsequio o una muestra")
+        elif item.costo_unitario > precio:
+            avisos.append(f"{nombre}: el costo unitario {item.costo_unitario:.2f} es mayor al precio de venta "
+                          f"{precio:.2f}; confirma que no sea un error de digitación")
+    return avisos
+
+
 def registrar_compra(db: Session, datos: CompraIn, usuario_id: int) -> CompraOut:
-    if _existe_comprobante(db, datos):
+    sin_comprobante = datos.tipo_comprobante == TipoComprobante.SIN_COMPROBANTE
+    if not sin_comprobante and _existe_comprobante(db, datos):
         raise HTTPException(status.HTTP_409_CONFLICT, DUPLICADO)
 
     ids = [i.variante_id for i in datos.items]
-    existentes = {v.id for v in db.query(Variante.id).filter(Variante.id.in_(ids))}
-    faltan = sorted(set(ids) - existentes)
+    variantes = {v.id: v for v in db.query(Variante).filter(Variante.id.in_(ids))
+                 .options(selectinload(Variante.producto))}
+    faltan = sorted(set(ids) - set(variantes))
     if faltan:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"No existen las variantes: {faltan}")
+    retiradas = [f"{v.producto.nombre} · {v.nombre}" for v in variantes.values() if not v.activa]
+    if retiradas:
+        # HU033 E16: una variante desactivada ya no recibe stock; hay que reactivarla primero.
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            "Estas variantes están desactivadas; reactívalas antes de comprar: " + ", ".join(retiradas))
 
+    avisos = _avisos(datos, variantes)
+    if avisos and not datos.confirmar_avisos:
+        raise HTTPException(status.HTTP_409_CONFLICT, {
+            "mensaje": "Revisa estos datos antes de guardar; si son correctos, vuelve a enviar con confirmar_avisos: true",
+            "avisos": avisos,
+        })
+
+    numero = _siguiente_numero_interno(db) if sin_comprobante else datos.numero_comprobante
     compra = Compra(
         proveedor=datos.proveedor, proveedor_ruc=datos.proveedor_ruc, tipo_comprobante=datos.tipo_comprobante,
-        numero_comprobante=datos.numero_comprobante, fecha=datos.fecha, usuario_id=usuario_id,
+        numero_comprobante=numero, fecha=datos.fecha, usuario_id=usuario_id,
         total=sum((i.costo_unitario * i.cantidad for i in datos.items), Decimal("0.00")),
         detalles=[DetalleCompra(variante_id=i.variante_id, cantidad=i.cantidad, costo_unitario=i.costo_unitario)
                   for i in datos.items],

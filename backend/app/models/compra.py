@@ -7,7 +7,9 @@ from app.database import Base
 class TipoComprobante:
     BOLETA = "boleta"
     FACTURA = "factura"
-    TODOS = (BOLETA, FACTURA)
+    SIN_COMPROBANTE = "sin_comprobante"  # HU033 E6 / AKASH-152: el sistema asigna SC-0001, SC-0002…
+    TODOS = (BOLETA, FACTURA, SIN_COMPROBANTE)
+    PREFIJO_INTERNO = "SC-"
 
 
 class Compra(Base):
@@ -19,7 +21,7 @@ class Compra(Base):
     id = Column(Integer, primary_key=True)
     proveedor = Column(String(120), nullable=False)
     proveedor_ruc = Column(String(11))
-    tipo_comprobante = Column(String(10), nullable=False)
+    tipo_comprobante = Column(String(20), nullable=False)
     numero_comprobante = Column(String(30), nullable=False)
     fecha = Column(Date, nullable=False)
     comprobante_url = Column(String(255))  # ruta en el bucket privado (AKASH-115)

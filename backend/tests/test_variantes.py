@@ -128,13 +128,16 @@ def test_no_se_elimina_la_ultima_variante(client, auth):
     assert len(client.get(URL, headers=auth).json()) == 1
 
 
-def test_no_se_elimina_variante_con_pedidos(client, auth, engine):
+def test_variante_con_pedidos_se_desactiva_en_lugar_de_borrarse(client, auth, engine):
+    """HU027 E9: con pedidos no se borra (FK sin ON DELETE, como en Supabase): se desactiva."""
     _producto(client, auth)
     vid = _variante(client, auth).json()["id"]
-    with Session(engine) as db:  # detalle_pedido tiene FK a variante sin ON DELETE, como en Supabase
+    with Session(engine) as db:
         crear_pedido(db, "AK-0001", [(vid, 1, "25.00")])
-    assert client.delete(f"{URL}/{vid}", headers=auth).status_code == 409
-    assert len(client.get(URL, headers=auth).json()) == 2
+    respuesta = client.delete(f"{URL}/{vid}", headers=auth)
+    assert respuesta.status_code == 200
+    assert respuesta.json()["desactivada"] is True
+    assert [v["activa"] for v in client.get(URL, headers=auth).json()] == [True, False]
 
 
 def test_precio_propio_no_cambia_si_cambia_el_precio_base(client, auth):

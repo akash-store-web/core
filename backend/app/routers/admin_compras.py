@@ -16,7 +16,10 @@ router = APIRouter(prefix="/admin", tags=["admin: compras"], dependencies=[Depen
 @router.post("/compras", response_model=CompraOut, status_code=status.HTTP_201_CREATED)
 def registrar_compra(datos: CompraIn, usuario: Usuario = Depends(get_current_admin), db: Session = Depends(get_db)):
     """Guarda la compra y suma el stock de cada variante en una sola transacción.
-    409 si ese comprobante del mismo proveedor ya existe (no se duplica el ingreso)."""
+    409 si ese comprobante del mismo proveedor ya existe (no se duplica el ingreso).
+    409 con `detail = {"mensaje", "avisos"}` si hay un costo 0.00 o mayor al precio de venta y no llega
+    `confirmar_avisos: true`. `sin_comprobante`: el sistema asigna el número SC-0001, SC-0002…
+    422 si una variante está desactivada o si la factura no trae RUC."""
     return servicio.registrar_compra(db, datos, usuario.id)
 
 

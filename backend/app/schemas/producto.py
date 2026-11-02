@@ -5,7 +5,9 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 Texto = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
-Precio = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2, examples=["25.00"])]
+# T-07 (HU014 E7, HU027 E8): de 0.01 a 9,999.99 con 2 decimales.
+PRECIO_MAXIMO = Decimal("9999.99")
+Precio = Annotated[Decimal, Field(gt=0, le=PRECIO_MAXIMO, max_digits=10, decimal_places=2, examples=["25.00"])]
 # Sin ejemplo, Swagger inventa un Decimal aleatorio a partir del patrón y se ve ilegible.
 PrecioOut = Annotated[Decimal, Field(examples=["25.00"])]
 
@@ -23,7 +25,7 @@ class ProductoIn(BaseModel):
 
     categoria_id: int = Field(examples=[2])
     nombre: Annotated[Texto, StringConstraints(max_length=120)] = Field(examples=["Pulsera de cuarzo"])
-    descripcion: Texto = Field(examples=["Pulsera de cuentas de cuarzo natural con hilo elástico."])
+    descripcion: Annotated[Texto, StringConstraints(max_length=1000)] = Field(examples=["Pulsera de cuentas de cuarzo natural con hilo elástico."])
     precio_base: Precio
     material: Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)] | None = Field(None, examples=["Cuarzo natural"])
     medidas: Annotated[str, StringConstraints(strip_whitespace=True, max_length=80)] | None = Field(None, examples=["Cuentas de 8 mm"])
@@ -34,6 +36,13 @@ class ProductoIn(BaseModel):
 class ProductoCrear(ProductoIn):
     """Alta de producto. Nace con la variante "Única" (HU027 #3) y existencias 0: el stock entra solo
     por compras (HU033) o ajustes con motivo (HU034). Si llega `existencias`, se ignora."""
+
+
+class ProductoEditar(ProductoIn):
+    """Edición del producto (HU032). `actualizado_en` es opcional: si llega (el valor que devolvió el GET)
+    y otra persona guardó cambios después, responde 409 en lugar de pisarlos (HU032 E10)."""
+
+    actualizado_en: datetime | None = Field(None, examples=["2026-11-01T15:30:00.123456Z"])
 
 
 class PublicadoIn(BaseModel):
@@ -66,6 +75,7 @@ class ProductoOut(BaseModel):
     es_pieza_natural: bool
     publicado: bool
     creado_en: datetime | None
+    actualizado_en: datetime | None  # enviarlo de vuelta en el PUT para detectar ediciones simultáneas
     imagenes: list[ImagenOut] = []
 
 
@@ -78,7 +88,7 @@ class ProductoListItem(BaseModel):
     categoria: str
     precio_base: PrecioOut
     publicado: bool
-    num_variantes: int
+    num_variantes: int  # solo las variantes activas
     existencias_total: int
     agotado: bool
     foto_principal: str  # nunca vacía: si no hay fotos reales, la imagen genérica
