@@ -13,6 +13,28 @@ En el frontend la URL base viene de `VITE_API_URL`. Render gratuito "duerme" tra
 
 ---
 
+## Cambios para el frontend (T-07 y escenarios de error del Sprint 2, nov-2026)
+
+Lo que Jeremies (y Litzy en el carrito) deben ajustar. Nada de esto rompe una llamada que hoy funciona, salvo donde se indica ⚠️.
+
+| # | Pantalla | Cambio en la API | Qué hacer en el frontend |
+|---|---|---|---|
+| 1 | Login | `429` tras 5 intentos fallidos en 15 min por correo (`detail` en español con los minutos que faltan; header `Retry-After` en segundos). Contraseña vacía → `422`. | Mostrar `detail` tal cual; no reintentar solo. Ojo: hoy `http.js` trata cualquier 401 como sesión vencida, pero el login usa su propio `fetch`. |
+| 2 | Restablecer / cambiar contraseña | La nueva exige mínimo 8 caracteres, **al menos una letra y un número** (`422`). | Validar lo mismo en el formulario y mostrar el mensaje. |
+| 3 | Compras | ⚠️ `409` con **`detail` objeto**: `{"mensaje": "...", "avisos": ["Línea 1 (...): ..."]}` si hay costo 0.00 o mayor al precio de venta. | Mostrar los avisos y, si la propietaria confirma, reenviar el mismo cuerpo con `"confirmar_avisos": true`. `mensajeDeError` debe aceptar `detail` objeto. |
+| 4 | Compras | Nuevo `tipo_comprobante: "sin_comprobante"`: no se envía `numero_comprobante`; el backend asigna `SC-0001`… La **factura exige RUC** (`422`). | Ocultar el número cuando sea "sin comprobante" (AKASH-152) y marcar el RUC obligatorio en factura. |
+| 5 | Compras | `422` si una variante está desactivada. | Listar solo variantes con `activa: true` en el selector. |
+| 6 | Envíos | ⚠️ `PUT /admin/zonas-envio/{id}/distritos` ya **no mueve en silencio** distritos de otra zona: `409` con `detail = {"mensaje", "distritos": [{"id","nombre","zona_envio_id","zona_actual"}]}`. | Preguntar "¿Mover estos distritos?" y reenviar con `"confirmar_traslado": true`. |
+| 7 | Envíos | Al desactivar una zona (`activa: false`), la respuesta trae `distritos_sin_cobertura: n`. Nombre de zona único (`409`) y de 3 a 60 caracteres; costo ≤ 999.99. | Mostrar "n distritos quedan sin envío". |
+| 8 | Variantes | `DELETE` de una variante con historial (movimientos, compras o pedidos) **ya no da 409**: responde `200` con `{"desactivada": true, "variante": {...}, "detail": "..."}`. Sin historial, `204` como antes. `VarianteOut` trae `activa`. `PUT` acepta `activa` opcional (reactivar). | Mostrar el aviso de `detail`; pintar las inactivas como "Retirada" con botón Reactivar (`PUT` con `"activa": true`). |
+| 9 | Variantes | Nombre único dentro del producto (`409`) y máximo 30 activas (`422`). | Mostrar `detail`. |
+| 10 | Producto | `actualizado_en` en la respuesta de `GET/PUT /admin/productos/{id}`. El `PUT` lo acepta **opcional**: si se envía y otra persona guardó antes → `409`. | Guardar el `actualizado_en` del GET y enviarlo en el PUT; ante `409`, ofrecer recargar. Si no se envía, todo sigue igual. |
+| 11 | Producto | Nombre único dentro de la categoría (`409`, el `detail` trae el nombre y el id del existente). Precio ≤ 9,999.99; descripción ≤ 1000. | Mostrar `detail`; poner `max` en los campos. |
+| 12 | Fotos | `409` al borrar la única foto de un producto publicado si `PUBLICAR_EXIGE_FOTO=true`. | Mostrar `detail`. |
+| 13 | Carrito | Una variante desactivada llega como `estado: "no_disponible"` con `mensaje` "Esta variante ya no está disponible; quítala del pedido". | Nada nuevo: ya se maneja `no_disponible`. |
+
+---
+
 ## Convenciones
 
 **Autenticación.** Las rutas `/admin/*` y `PUT /auth/contrasena` exigen el header:
@@ -38,9 +60,10 @@ Al enviar montos, manden texto (`"25.00"`) o número (`25`); máximo 2 decimales
 | 400 | Petición no válida (p. ej. enlace vencido) | texto |
 | 401 | Sin token, token vencido o credenciales inválidas | texto |
 | 404 | No existe (o, en el catálogo, no está publicado) | texto |
-| 409 | Choca con una regla del negocio | texto, listo para mostrar |
+| 409 | Choca con una regla del negocio | texto, listo para mostrar; **objeto** `{"mensaje", ...}` cuando hay que confirmar (avisos de compra, traslado de distritos) |
 | 413 / 415 | Foto muy grande / formato no permitido | texto |
 | 422 | Validación de campos | **lista** (ver abajo) o texto |
+| 429 | Demasiados intentos de login (bloqueo de 15 min) | texto con los minutos restantes |
 | 502 | Falló un servicio externo (Storage) | texto |
 
 Un `422` de validación trae una lista; `loc[1]` es el campo con el problema:
@@ -71,7 +94,12 @@ const mensaje = (detail) => Array.isArray(detail) ? detail.map(e => `${e.loc.at(
 {"access_token": "eyJhbGciOi...", "token_type": "bearer"}
 // 401 — mismo mensaje si falla el correo o la contraseña
 {"detail": "Credenciales inválidas"}
+// 422 — correo con formato inválido o contraseña vacía (no consulta la base)
+// 429 — 5 intentos fallidos en 15 min con ese correo (aunque luego llegue la contraseña correcta)
+{"detail": "Demasiados intentos fallidos; vuelve a intentarlo en 15 minutos o recupera tu contraseña"}
 ```
+El bloqueo es por correo y dura 15 minutos desde el quinto fallo; un login correcto (antes del bloqueo) reinicia el contador. Trae el header `Retry-After` (segundos).
+**Limitación conocida:** el contador vive en la memoria del servidor; si Render reinicia o redespliega, se pierde (se vuelve a empezar de cero).
 
 ### `POST /auth/recuperar` — "Olvidé mi contraseña" (HU024)
 ```json
@@ -81,21 +109,22 @@ const mensaje = (detail) => Array.isArray(detail) ? detail.map(e => `${e.loc.at(
 {"detail": "Si el correo está registrado, te enviaremos un enlace para restablecer tu contraseña"}
 ```
 El correo (Brevo) lleva un enlace a **`{FRONTEND_URL}/restablecer?token=...`**: el frontend necesita esa ruta.
+Máximo **3 solicitudes por correo por hora**: desde la cuarta responde lo mismo (`202`) pero no envía correo (en memoria, igual que el bloqueo del login).
 
 ### `POST /auth/restablecer` — pantalla `/restablecer?token=...`
 ```json
 // petición: el token sale de la URL
-{"token": "eyJhbGciOi...", "nueva_contrasena": "nueva-clave-segura"}
+{"token": "eyJhbGciOi...", "nueva_contrasena": "nueva-clave-segura1"}
 // 200
 {"detail": "Contraseña actualizada; ya puedes iniciar sesión"}
 // 400 — vencido (30 min), ya usado o inválido
 {"detail": "El enlace no es válido o ya venció; solicita uno nuevo"}
 ```
-Contraseña: mínimo 8 caracteres (si no, `422`).
+Contraseña: mínimo 8 caracteres, **al menos una letra y un número**, máx. 72 bytes (si no, `422`).
 
 ### `PUT /auth/contrasena` 🔒 — cambiarla con la sesión iniciada
 ```json
-{"actual": "clave-segura", "nueva": "nueva-clave-segura"}
+{"actual": "clave-segura", "nueva": "nueva-clave-segura1"}   // misma política que /restablecer
 // 200 {"detail": "Contraseña actualizada"}
 // 400 "La contraseña actual no es correcta" | "La nueva contraseña debe ser distinta de la actual"
 ```
@@ -121,25 +150,36 @@ Listado del panel; `q` busca por nombre sin distinguir mayúsculas.
 {
   "categoria_id": 4,                       // obligatorio
   "nombre": "Anillo de plata 925 con piedra", // obligatorio, máx. 120
-  "descripcion": "Anillo de plata 925 con piedra natural facetada.", // obligatorio
-  "precio_base": "40.00",                  // obligatorio, > 0
+  "descripcion": "Anillo de plata 925 con piedra natural facetada.", // obligatorio, máx. 1000
+  "precio_base": "40.00",                  // obligatorio, de 0.01 a 9999.99
   "material": "Plata 925",                 // opcional, máx. 80
   "medidas": "Piedra de 8 × 10 mm",        // opcional, máx. 80
   "peso_g": "12.50",                       // opcional, > 0
   "es_pieza_natural": true                 // opcional (false)
 }
 ```
-Responde el producto (`publicado: false`, `imagenes: []`). **Todo producto nace con una variante "Única"** que guarda su stock (HU027), y nace con **existencias 0**: el stock entra por compras (HU033) o ajustes (HU034).
+Responde el producto (`publicado: false`, `imagenes: []`, `actualizado_en`). `409` si ya hay un producto con ese nombre en la categoría (sin distinguir mayúsculas ni espacios extremos): `{"detail": "Ya existe un producto con ese nombre en la categoría: «Pulsera de cuarzo» (id 3)"}`. **Todo producto nace con una variante "Única"** que guarda su stock (HU027), y nace con **existencias 0**: el stock entra por compras (HU033) o ajustes (HU034).
 
 ### `GET /admin/productos/{id}` · `PUT /admin/productos/{id}`
 `PUT` recibe los mismos campos que el `POST`. Ninguno de los dos cambia `publicado` ni las existencias (HU034).
+
+**Edición simultánea (HU032 E10).** La respuesta trae `actualizado_en` (se renueva con cada cambio del producto, sus variantes, sus fotos o su publicación). El `PUT` acepta `actualizado_en` **opcional**:
+```json
+{"categoria_id": 4, "nombre": "...", "descripcion": "...", "precio_base": "42.00", "actualizado_en": "2026-11-01T15:30:00.123456Z"}
+// 409 si otra persona guardó después de ese momento:
+{"detail": "Otra persona modificó este producto mientras lo editabas; recarga para ver los cambios y vuelve a guardar"}
+```
+Si no se envía, no se valida (compatibilidad). `409` también si el nombre nuevo ya lo usa otro producto de la categoría.
 
 ### `PATCH /admin/productos/{id}/publicado` — interruptor Activo/Inactivo (HU016)
 ```json
 {"publicado": true}
 // 200: el producto actualizado
 // 409: {"detail": "No se puede publicar: falta al menos una foto"}  (solo si PUBLICAR_EXIGE_FOTO=true)
+// 409: {"detail": "No se puede publicar: falta al menos una variante activa"}
+// 404 si el producto no existe · 422 si publicado no es true/false
 ```
+Publicar dos veces seguidas no cambia nada (ni `actualizado_en`).
 Despublicar siempre se permite y no borra nada. No existe borrado de productos.
 La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace falta al menos una foto real.
 
@@ -150,25 +190,35 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 ### `GET /admin/productos/{id}/variantes`
 ```json
 [{"id": 1, "producto_id": 1, "nombre": "Amatista", "precio": "45.00", "precio_efectivo": "45.00",
-  "existencias": 3, "agotado": false, "propiedades": "Se le atribuye calma."},
+  "existencias": 3, "agotado": false, "propiedades": "Se le atribuye calma.", "activa": true},
  {"id": 2, "producto_id": 1, "nombre": "Turmalina negra", "precio": null, "precio_efectivo": "40.00",
-  "existencias": 2, "agotado": false, "propiedades": null}]
+  "existencias": 2, "agotado": false, "propiedades": null, "activa": false}]
 ```
 `precio: null` = hereda el `precio_base`; muestren siempre `precio_efectivo`.
+`activa: false` = variante **retirada**: tenía historial y se "eliminó". No se vende (el carrito la da como `no_disponible`), no se compra (`422` en compras) y no cuenta en `num_variantes` ni en `existencias_total` del listado; su historial se conserva.
 
 ### `POST /admin/productos/{id}/variantes` → `201` · `PUT /admin/productos/{id}/variantes/{vid}`
 ```json
 // POST (nueva variante): nace con existencias 0
 {"nombre": "Turmalina negra", "precio": null, "propiedades": null}
-// PUT (editar, HU032): sin existencias
-{"nombre": "Turmalina negra", "precio": "42.00", "propiedades": "Se le atribuye protección."}
+// PUT (editar, HU032): sin existencias; "activa" es opcional (true = reactivar, false = retirar; si no llega, no cambia)
+{"nombre": "Turmalina negra", "precio": "42.00", "propiedades": "Se le atribuye protección.", "activa": true}
 ```
 **Editar no cambia las existencias (HU032):** si el `PUT` trae `existencias`, se ignora. En la pantalla de edición muéstrenlas solo como lectura.
-`nombre` obligatorio (máx. 80); `precio` > 0 o `null`.
+`nombre` obligatorio (máx. 80) y **único dentro del producto** (`409`; si la repetida está retirada, el mensaje sugiere reactivarla); `precio` de 0.01 a 9999.99 o `null`. Máximo **30 variantes activas** por producto (`422` al crear o reactivar la 31.ª). `409` si se intenta retirar la última activa.
 **Tabla editable (AKASH-46):** la primera piedra se registra **renombrando la variante "Única"** con `PUT`; las demás con `POST`.
 
-### `DELETE /admin/productos/{id}/variantes/{vid}` → `204`
-`409` si es la última variante del producto o si ya tiene pedidos (en ese caso, se deja como está).
+### `DELETE /admin/productos/{id}/variantes/{vid}` → `204` o `200`
+- **Sin historial** → `204`: se borra.
+- **Con movimientos de stock, compras o pedidos** → no se borra, **se desactiva** (HU027 E9, HU032 E8):
+```json
+// 200
+{"desactivada": true,
+ "variante": {"id": 2, "producto_id": 1, "nombre": "Turmalina negra", "precio": null, "precio_efectivo": "40.00",
+              "existencias": 2, "agotado": false, "propiedades": null, "activa": false},
+ "detail": "La variante tiene historial (stock, compras o pedidos): se desactivó en lugar de borrarse"}
+```
+- `409` si es la última variante **activa** del producto.
 
 ---
 
@@ -187,13 +237,14 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 
 ### `POST /admin/variantes/{vid}/ajustes` → `201`
 ```json
-{"cantidad": -1, "motivo": "Se rompió al empacar"}   // cantidad con signo: − sale, + entra; motivo de 3 a 200 caracteres
+{"cantidad": -1, "motivo": "Se rompió al empacar"}   // cantidad entera con signo (− sale, + entra), ≠ 0 y hasta ±10000; motivo de 3 a 200 caracteres
 // 201: el movimiento registrado
 {"id": 8, "variante_id": 2, "variante": "Turmalina negra", "fecha": "2026-10-16T15:20:00Z", "tipo": "ajuste",
  "cantidad": -1, "saldo": 1, "motivo": "Se rompió al empacar", "compra_id": null, "pedido_numero": null,
  "usuario": "duena@ejemplo.com"}
-// 409 {"detail": "Las existencias no pueden quedar en negativo"} · 422 sin motivo o cantidad 0
+// 409 {"detail": "Las existencias no pueden quedar en negativo"} · 422 sin motivo, cantidad 0, decimal o fuera de ±10000
 ```
+Los movimientos **no se editan ni se borran**: `PUT`/`PATCH`/`DELETE` sobre `/ajustes` o `/movimientos` responden `405`. Para corregir un error se registra otro ajuste.
 
 ### `GET /admin/variantes/{vid}/movimientos` · `GET /admin/productos/{id}/movimientos`
 Historial del más reciente al más antiguo, con el **saldo** después de cada movimiento. El del producto incluye todas sus variantes (cada fila trae `variante`). En una venta, `pedido_numero` dice qué pedido la originó; en una compra, `compra_id`.
@@ -207,16 +258,28 @@ El stock **entra** por aquí: cada compra suma las existencias de sus variantes 
 ### `POST /admin/compras` → `201`
 ```json
 {"proveedor": "Minerales del Sur",          // obligatorio, 2 a 120 caracteres
- "proveedor_ruc": "20512345678",            // opcional, 11 dígitos (las boletas pueden no tenerlo)
- "tipo_comprobante": "factura",             // "boleta" | "factura"
- "numero_comprobante": "F001-000123",       // se guarda en mayúsculas
+ "proveedor_ruc": "20512345678",            // 11 dígitos; OBLIGATORIO en factura, opcional en boleta
+ "tipo_comprobante": "factura",             // "boleta" | "factura" | "sin_comprobante"
+ "numero_comprobante": "F001-000123",       // obligatorio en boleta/factura; se guarda en mayúsculas
  "fecha": "2026-10-14",                     // fecha del comprobante; no puede ser futura
- "items": [{"variante_id": 1, "cantidad": 10, "costo_unitario": "12.50"},   // costo obligatorio
-           {"variante_id": 2, "cantidad": 4,  "costo_unitario": "15.00"}]}  // cada variante una sola vez
+ "items": [{"variante_id": 1, "cantidad": 10, "costo_unitario": "12.50"},   // cantidad 1–10000; costo 0.00–9999.99
+           {"variante_id": 2, "cantidad": 4,  "costo_unitario": "15.00"}],  // cada variante una sola vez
+ "confirmar_avisos": false}                 // opcional: true = guardar aunque haya avisos
 // 201: la compra con total ("185.00"), unidades (14), usuario e items con subtotal
 // 409 {"detail": "Ese comprobante de ese proveedor ya está registrado; no se volvió a sumar el stock"}
-// 422 campos inválidos o variante inexistente (no se guarda nada)
+// 409 con avisos (no se guarda nada) — ver abajo
+// 422 campos inválidos, factura sin RUC, variante inexistente o desactivada (no se guarda nada)
 ```
+**Sin comprobante (HU033 E6, AKASH-152).** Con `"tipo_comprobante": "sin_comprobante"` no se envía `numero_comprobante` (si llega, se ignora): el sistema asigna el siguiente correlativo interno **`SC-0001`, `SC-0002`…** (global, no por proveedor) dentro de la misma transacción.
+
+**Avisos que piden confirmación (HU033 E9 y E10).** Si una línea tiene costo `0.00` o un costo mayor al precio de venta de la variante (`precio_efectivo`), la compra **no se guarda** y responde:
+```json
+// 409
+{"detail": {"mensaje": "Revisa estos datos antes de guardar; si son correctos, vuelve a enviar con confirmar_avisos: true",
+            "avisos": ["Línea 1 (Roll-on de cuarzo · Amatista): el costo unitario es 0.00; confirma si fue un obsequio o una muestra",
+                       "Línea 2 (Roll-on de cuarzo · Citrino): el costo unitario 25.00 es mayor al precio de venta 20.00; confirma que no sea un error de digitación"]}}
+```
+Mostrar los avisos y, si la propietaria confirma, reenviar el mismo cuerpo con `"confirmar_avisos": true`.
 El duplicado se detecta por proveedor + tipo + número, sin distinguir mayúsculas. El archivo del comprobante (foto o PDF) se adjunta aparte:
 
 ### `POST /admin/compras/{id}/comprobante` (AKASH-115)
@@ -263,6 +326,7 @@ Errores: `409` ya tiene 5 · `413` > 5 MB · `415` no es JPG/PNG/WEBP.
 
 ### `PATCH /admin/productos/{id}/imagenes/{iid}/principal` → lista de imágenes del producto
 ### `DELETE /admin/productos/{id}/imagenes/{iid}` → `204` (si era la principal, pasa a serlo la siguiente)
+`409` si es la **única foto** de un producto **publicado** y `PUBLICAR_EXIGE_FOTO=true` (sube otra antes o despublícalo). Con la regla apagada, o con el producto despublicado, se permite.
 
 ---
 
@@ -270,15 +334,23 @@ Errores: `409` ya tiene 5 · `413` > 5 MB · `415` no es JPG/PNG/WEBP.
 
 | Ruta | Cuerpo | Nota |
 |---|---|---|
-| `GET /admin/zonas-envio` | — | `[{"id":1,"nombre":"Lima — motorizado","costo":"10.00","activa":true,"num_distritos":1}]` |
-| `POST /admin/zonas-envio` → 201 | `{"nombre":"Lima — motorizado","costo":"10.00","activa":true}` | `costo` ≥ 0 (0 = gratis) |
-| `PUT /admin/zonas-envio/{id}` | igual | `activa:false` deja de atender la zona sin borrarla |
-| `PUT /admin/zonas-envio/{id}/distritos` | `{"distrito_ids":[1,2,3]}` | mueve esos distritos a la zona |
+| `GET /admin/zonas-envio` | — | `[{"id":1,"nombre":"Lima — motorizado","costo":"10.00","activa":true,"num_distritos":1,"distritos_sin_cobertura":null}]` |
+| `POST /admin/zonas-envio` → 201 | `{"nombre":"Lima — motorizado","costo":"10.00","activa":true}` | nombre de 3 a 60 caracteres y **único** (`409`); `costo` de 0.00 a 999.99 (0 = gratis) |
+| `PUT /admin/zonas-envio/{id}` | igual | `activa:false` deja de atender la zona sin borrarla; la respuesta trae `distritos_sin_cobertura` (cuántos distritos se quedan sin envío) |
+| `PUT /admin/zonas-envio/{id}/distritos` | `{"distrito_ids":[1,2,3], "confirmar_traslado": false}` | pasa esos distritos a la zona; si alguno ya está en **otra** zona → `409` (ver abajo) |
 | `GET /admin/distritos?zona_envio_id=&sin_zona=true` | — | `[{"id":1,"nombre":"Miraflores","zona_envio_id":1,"con_cobertura":true}]` |
 | `POST /admin/distritos` → 201 | `{"nombre":"Miraflores","zona_envio_id":1}` | `409` si el nombre ya existe |
 | `PUT /admin/distritos/{id}` | igual | `zona_envio_id:null` = sin cobertura |
 
 Ya están cargados los 43 distritos de Lima y 7 del Callao, todos **sin zona** hasta definir costos.
+
+**Distrito que ya está en otra zona (HU026 E8).** Un distrito pertenece a una sola zona; moverlo cambia su costo de envío, así que se pide confirmación. No se mueve nada hasta confirmar:
+```json
+// 409
+{"detail": {"mensaje": "Estos distritos ya pertenecen a otra zona; para moverlos a esta, vuelve a enviar con confirmar_traslado: true",
+            "distritos": [{"id": 7, "nombre": "Bellavista", "zona_envio_id": 1, "zona_actual": "Lima — motorizado"}]}}
+```
+Reenviar con `"confirmar_traslado": true` para moverlos. Los distritos sin zona o que ya son de esta zona no piden confirmación. `404` si la zona o algún distrito no existe.
 
 ---
 
@@ -382,7 +454,7 @@ El carrito vive en el navegador (por ejemplo, en `localStorage`). Antes de mostr
 | `ok` | Nada |
 | `stock_insuficiente` | Mostrar `mensaje` y ofrecer bajar la cantidad a `cantidad_maxima` |
 | `agotado` | Mostrar `mensaje` ("Agotado; quítalo del pedido") |
-| `no_disponible` | El producto se despublicó o ya no existe: quitarlo del carrito |
+| `no_disponible` | El producto se despublicó, ya no existe o la variante se retiró (`activa: false`): quitarlo del carrito |
 
 - Solo con `valido: true` se habilita el botón para continuar al checkout.
 - `subtotal` se calcula con lo que sí se puede comprar; `total` no incluye el envío (ver `/envio/costo`).
