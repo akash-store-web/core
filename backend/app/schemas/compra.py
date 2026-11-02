@@ -4,9 +4,11 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
+from app.models.compra import TipoComprobante
 from app.schemas.producto import PrecioOut
 
-Costo = Annotated[Decimal, Field(ge=0, max_digits=10, decimal_places=2)]
+# T-07 (HU033): de 0.00 a 9,999.99. Un costo 0.00 o mayor al precio de venta se guarda, pero pide confirmación.
+Costo = Annotated[Decimal, Field(ge=0, le=Decimal("9999.99"), max_digits=10, decimal_places=2)]
 
 
 class LineaCompraIn(BaseModel):
@@ -22,11 +24,15 @@ class CompraIn(BaseModel):
         examples=["Minerales del Sur"])
     proveedor_ruc: Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^\d{11}$")] | None = Field(
         None, examples=["20512345678"])
-    tipo_comprobante: Literal["boleta", "factura"] = Field(examples=["factura"])
+    tipo_comprobante: Literal["boleta", "factura", "sin_comprobante"] = Field(examples=["factura"])
+    # Obligatorio en boleta y factura. En "sin_comprobante" no se envía (si llega, se ignora):
+    # el sistema asigna SC-0001, SC-0002… (HU033 escenario 6 / AKASH-152).
     numero_comprobante: Annotated[str, StringConstraints(strip_whitespace=True, to_upper=True, min_length=1,
-                                                         max_length=30)] = Field(examples=["F001-000123"])
+                                                         max_length=30)] | None = Field(None, examples=["F001-000123"])
     fecha: date = Field(examples=["2026-10-15"])
     items: list[LineaCompraIn] = Field(min_length=1, max_length=100)
+    # HU033 E9/E10: true = guardar aunque haya avisos (costo 0.00 o mayor al precio de venta).
+    confirmar_avisos: bool = False
 
     @field_validator("fecha")
     @classmethod
@@ -34,6 +40,16 @@ class CompraIn(BaseModel):
         if valor > date.today():
             raise ValueError("La fecha del comprobante no puede ser futura")
         return valor
+
+    @model_validator(mode="after")
+    def _comprobante_coherente(self):
+        if self.tipo_comprobante == TipoComprobante.SIN_COMPROBANTE:
+            self.numero_comprobante = None  # lo asigna el sistema
+        elif not self.numero_comprobante:
+            raise ValueError("El número de comprobante es obligatorio en boletas y facturas")
+        if self.tipo_comprobante == TipoComprobante.FACTURA and not self.proveedor_ruc:
+            raise ValueError("La factura necesita el RUC del proveedor (11 dígitos)")
+        return self
 
     @model_validator(mode="after")
     def _sin_variantes_repetidas(self):
