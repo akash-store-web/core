@@ -20,13 +20,18 @@ log = logging.getLogger("akash.catalogo")
 LIMITE_MAXIMO = 100
 
 
+def _activas(producto: Producto) -> list:
+    """HU028 E8: las variantes desactivadas (con historial, retiradas del panel) no existen para la clienta."""
+    return [v for v in producto.variantes if v.activa]
+
+
 def _es_listable(producto: Producto) -> bool:
     """HU001 E7 / HU002 E8: un producto publicado sin variantes o con algún precio efectivo <= 0 no se muestra.
     No debería pasar (publicar exige variante y precio > 0), pero si los datos se dañan, se oculta y se avisa."""
-    if not producto.variantes:
+    if not _activas(producto):
         log.warning("Producto publicado %s sin variantes: se oculta del catálogo", producto.id)
         return False
-    if any(v.precio_efectivo is None or v.precio_efectivo <= 0 for v in producto.variantes):
+    if any(v.precio_efectivo is None or v.precio_efectivo <= 0 for v in _activas(producto)):
         log.warning("Producto publicado %s con precio efectivo <= 0: se oculta del catálogo", producto.id)
         return False
     return True
@@ -34,9 +39,9 @@ def _es_listable(producto: Producto) -> bool:
 
 def _tarjeta(producto: Producto, disponibles: dict[int, int]) -> dict:
     """`disponibles`: unidades vendibles por variante (existencias - reservas, nunca negativas)."""
-    con_stock = [v for v in producto.variantes if disponibles.get(v.id, 0) > 0]
+    con_stock = [v for v in _activas(producto) if disponibles.get(v.id, 0) > 0]
     # HU002 E7: el precio "desde" sale de las variantes que se pueden comprar; si todas están agotadas, de todas.
-    precios = {v.precio_efectivo for v in (con_stock or producto.variantes)}
+    precios = {v.precio_efectivo for v in (con_stock or _activas(producto))}
     foto, generica = foto_principal(producto.imagenes)
     return {
         "id": producto.id,
@@ -80,7 +85,7 @@ def listar_catalogo(db: Session, categoria_id: int | None = None, q: str | None 
     if q and q.strip():
         consulta = consulta.filter(Producto.nombre.ilike(f"%{q.strip()}%"))
     productos = [p for p in consulta.all() if _es_listable(p)]
-    disponibles = disponibles_para_venta(db, [v for p in productos for v in p.variantes])
+    disponibles = disponibles_para_venta(db, [v for p in productos for v in _activas(p)])
     tarjetas = [ProductoCatalogo(**_tarjeta(p, disponibles)) for p in productos]
     if solo_disponibles:  # HU029: ocultar los agotados (los que no tienen ninguna variante con stock)
         tarjetas = [t for t in tarjetas if t.disponible]
@@ -95,7 +100,7 @@ def obtener_ficha(db: Session, producto_id: int) -> FichaProducto:
     producto = _publicados(db).filter(Producto.id == producto_id).first()
     if producto is None or not _es_listable(producto):  # despublicado o con datos dañados: no existe para la clienta
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Producto no encontrado")
-    variantes = producto.variantes
+    variantes = _activas(producto)
     disponibles = disponibles_para_venta(db, variantes)
     return FichaProducto(
         **_tarjeta(producto, disponibles),
