@@ -28,7 +28,19 @@ def listar_zonas(db: Session) -> list[ZonaEnvioOut]:
     return [_zona_out(z) for z in zonas]
 
 
+def _validar_nombre_zona(db: Session, nombre: str, excluir_id: int | None = None) -> None:
+    """T-07 (HU026 E7): el nombre de la zona no se repite (sin mayúsculas ni espacios extremos)."""
+    consulta = db.query(ZonaEnvio).filter(func.lower(func.trim(ZonaEnvio.nombre)) == nombre.strip().lower())
+    if excluir_id is not None:
+        consulta = consulta.filter(ZonaEnvio.id != excluir_id)
+    existente = consulta.first()
+    if existente:
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"Ya existe una zona de envío con ese nombre: «{existente.nombre}» (id {existente.id})")
+
+
 def crear_zona(db: Session, datos: ZonaEnvioIn) -> ZonaEnvioOut:
+    _validar_nombre_zona(db, datos.nombre)
     zona = ZonaEnvio(**datos.model_dump())
     db.add(zona)
     db.commit()
@@ -39,11 +51,16 @@ def crear_zona(db: Session, datos: ZonaEnvioIn) -> ZonaEnvioOut:
 def actualizar_zona(db: Session, zona_id: int, datos: ZonaEnvioIn) -> ZonaEnvioOut:
     """Los cambios de costo se aplican de inmediato: el checkout siempre lee el costo vigente."""
     zona = obtener_zona(db, zona_id)
+    _validar_nombre_zona(db, datos.nombre, excluir_id=zona_id)
     for campo, valor in datos.model_dump().items():
         setattr(zona, campo, valor)
     db.commit()
     db.refresh(zona)
-    return _zona_out(zona)
+    salida = _zona_out(zona)
+    if not zona.activa:
+        # HU026 E9: avisar cuántos distritos dejan de tener delivery (no se borran ni se mueven).
+        salida.distritos_sin_cobertura = len(zona.distritos)
+    return salida
 
 
 def asignar_distritos(db: Session, zona_id: int, datos: AsignarDistritosIn) -> ZonaEnvioOut:
@@ -53,6 +70,15 @@ def asignar_distritos(db: Session, zona_id: int, datos: AsignarDistritosIn) -> Z
     faltan = ids - {d.id for d in distritos}
     if faltan:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Distritos no encontrados: {sorted(faltan)}")
+    en_otra = sorted((d for d in distritos if d.zona_envio_id not in (None, zona.id)), key=lambda d: d.nombre)
+    if en_otra and not datos.confirmar_traslado:
+        # HU026 E8: un distrito pertenece a una sola zona; moverlo cambia su costo, así que se confirma.
+        raise HTTPException(status.HTTP_409_CONFLICT, {
+            "mensaje": "Estos distritos ya pertenecen a otra zona; para moverlos a esta, vuelve a enviar con "
+                       "confirmar_traslado: true",
+            "distritos": [{"id": d.id, "nombre": d.nombre, "zona_envio_id": d.zona_envio_id,
+                           "zona_actual": d.zona.nombre} for d in en_otra],
+        })
     for distrito in distritos:
         distrito.zona_envio_id = zona.id
     db.commit()

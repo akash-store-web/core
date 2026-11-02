@@ -149,3 +149,62 @@ def test_calcular_costo_envio_con_cobertura(client, auth, engine):
 def test_distrito_inexistente(client):
     assert client.get("/envio/costo", params={"distrito_id": 99}).status_code == 404
     assert client.get("/envio/costo").status_code == 422
+
+
+# --- T-07 (HU026 E7 a E10): escenarios de error ---
+
+def test_nombre_de_zona_unico_y_con_minimo_3_caracteres(client, auth):
+    _zona(client, auth)
+    duplicada = client.post("/admin/zonas-envio", json={"nombre": "  LIMA — Motorizado ", "costo": "8.00"}, headers=auth)
+    assert duplicada.status_code == 409
+    assert "Lima — motorizado" in duplicada.json()["detail"]
+    assert client.post("/admin/zonas-envio", json={"nombre": "Li", "costo": "8.00"}, headers=auth).status_code == 422
+    callao = _zona(client, auth, **CALLAO)
+    assert client.put(f"/admin/zonas-envio/{callao}", json={**LIMA}, headers=auth).status_code == 409
+    assert client.put(f"/admin/zonas-envio/{callao}", json={**CALLAO, "costo": "16.00"}, headers=auth).status_code == 200
+
+
+def test_costo_de_zona_hasta_999_99(client, auth):
+    assert client.post("/admin/zonas-envio", json={"nombre": "Lejana", "costo": "1000.00"}, headers=auth).status_code == 422
+    assert client.post("/admin/zonas-envio", json={"nombre": "Lejana", "costo": "999.99"}, headers=auth).status_code == 201
+
+
+def test_distrito_de_otra_zona_pide_confirmar_traslado(client, auth):
+    lima = _zona(client, auth)
+    callao = _zona(client, auth, **CALLAO)
+    bellavista = _distrito(client, auth, "Bellavista", lima)
+    ventanilla = _distrito(client, auth, "Ventanilla")
+    url = f"/admin/zonas-envio/{callao}/distritos"
+    respuesta = client.put(url, json={"distrito_ids": [bellavista, ventanilla]}, headers=auth)
+    assert respuesta.status_code == 409
+    detalle = respuesta.json()["detail"]
+    assert "confirmar_traslado" in detalle["mensaje"]
+    assert detalle["distritos"] == [{"id": bellavista, "nombre": "Bellavista", "zona_envio_id": lima,
+                                     "zona_actual": "Lima — motorizado"}]
+    # No se movió nada (ni siquiera el distrito que no tenía zona)
+    assert client.get("/admin/distritos", params={"zona_envio_id": callao}, headers=auth).json() == []
+
+    confirmada = client.put(url, json={"distrito_ids": [bellavista, ventanilla], "confirmar_traslado": True},
+                            headers=auth)
+    assert confirmada.status_code == 200
+    assert confirmada.json()["num_distritos"] == 2
+    # Volver a enviar distritos que ya son de esta zona no pide confirmación
+    assert client.put(url, json={"distrito_ids": [bellavista]}, headers=auth).status_code == 200
+
+
+def test_desactivar_zona_informa_distritos_sin_cobertura(client, auth):
+    lima = _zona(client, auth)
+    for nombre in ("Miraflores", "Surquillo"):
+        _distrito(client, auth, nombre, lima)
+    respuesta = client.put(f"/admin/zonas-envio/{lima}", json={**LIMA, "activa": False}, headers=auth)
+    assert respuesta.status_code == 200
+    assert respuesta.json()["distritos_sin_cobertura"] == 2
+    assert all(not d["con_cobertura"] for d in client.get("/envio/distritos").json())
+    activa = client.put(f"/admin/zonas-envio/{lima}", json={**LIMA, "activa": True}, headers=auth)
+    assert activa.json()["distritos_sin_cobertura"] is None
+
+
+def test_asignar_a_zona_inexistente(client, auth):
+    distrito = _distrito(client, auth, "Miraflores")
+    assert client.put("/admin/zonas-envio/99/distritos", json={"distrito_ids": [distrito]},
+                      headers=auth).status_code == 404

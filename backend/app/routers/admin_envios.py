@@ -16,17 +16,21 @@ def listar_zonas(db: Session = Depends(get_db)):
 
 @router.post("/zonas-envio", response_model=ZonaEnvioOut, status_code=status.HTTP_201_CREATED)
 def crear_zona(datos: ZonaEnvioIn, db: Session = Depends(get_db)):
+    """409 si ya existe una zona con ese nombre."""
     return servicio.crear_zona(db, datos)
 
 
 @router.put("/zonas-envio/{zona_id}", response_model=ZonaEnvioOut)
 def actualizar_zona(zona_id: int, datos: ZonaEnvioIn, db: Session = Depends(get_db)):
-    """Para dejar de atender una zona sin perder su configuración, enviar activa=false."""
+    """Para dejar de atender una zona sin perder su configuración, enviar activa=false: la respuesta
+    trae `distritos_sin_cobertura`. 409 si el nombre ya lo usa otra zona."""
     return servicio.actualizar_zona(db, zona_id, datos)
 
 
 @router.put("/zonas-envio/{zona_id}/distritos", response_model=ZonaEnvioOut)
 def asignar_distritos(zona_id: int, datos: AsignarDistritosIn, db: Session = Depends(get_db)):
+    """409 con la lista de distritos y su zona actual si alguno ya está en otra zona, salvo
+    `confirmar_traslado: true`."""
     return servicio.asignar_distritos(db, zona_id, datos)
 
 
