@@ -328,15 +328,25 @@ Del más reciente al más antiguo. `q` busca por número, nombre o teléfono; `e
 
 Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas.
 
-### `GET /catalogo?categoria_id=&q=&solo_disponibles=` — tarjetas
+### `GET /catalogo?categoria_id=&q=&solo_disponibles=&limite=&desde=` — tarjetas
 `solo_disponibles=true` oculta los productos agotados: es el interruptor «Ver solo disponibles» (HU029).
+
+- **Orden**: primero los disponibles y al final los agotados (HU029); dentro de cada grupo, por el orden de la
+  categoría y luego por nombre.
+- **Paginación opcional** (HU001): `limite` (1–100, por defecto 100) y `desde` (posición inicial, ≥ 0, por defecto 0).
+  La respuesta sigue siendo una **lista**; si `desde` pasa del final, devuelve `[]`. Fuera de rango → `422`.
+  Los parámetros desconocidos se ignoran.
+- Un producto publicado **sin variantes** o con algún precio ≤ 0 no aparece (ni en la lista ni en la ficha: `404`);
+  el servidor deja un aviso en el log con su id para corregirlo desde el panel.
 ```json
 [{"id": 1, "nombre": "Anillo de plata 925 con piedra", "categoria_id": 4, "categoria": "Anillos",
   "precio": "40.00", "precio_desde": true, "disponible": true, "es_pieza_natural": true,
   "foto_principal": "https://...jpg", "foto_generica": false}]
 ```
-- `precio_desde: true` → mostrar **"Desde S/ 40.00"** (HU002).
+- `precio_desde: true` → mostrar **"Desde S/ 40.00"** (HU002). `precio` es el menor entre las variantes **disponibles**;
+  si todas están agotadas, el menor entre todas.
 - `disponible: false` → etiqueta **"Agotado"** y botón de compra deshabilitado (HU003); el producto se sigue mostrando.
+  La disponibilidad descuenta las unidades apartadas por pedidos vigentes (cuando existan, HU010).
 
 ### `GET /catalogo/categorias`
 Solo las categorías con algún producto publicado, en orden: `[{"id": 4, "nombre": "Anillos"}]`.
@@ -346,12 +356,15 @@ La tarjeta más:
 ```json
 {"descripcion": "...", "material": "Plata 925", "medidas": "Piedra de 8 × 10 mm", "peso_g": null,
  "tiene_variantes": true,
- "variantes": [{"id": 1, "nombre": "Amatista", "precio": "45.00", "disponible": true, "propiedades": "Se le atribuye calma."},
-               {"id": 2, "nombre": "Turmalina negra", "precio": "40.00", "disponible": false, "propiedades": null}],
+ "variantes": [{"id": 1, "nombre": "Amatista", "precio": "45.00", "disponible": true, "ultima_unidad": true,
+                "propiedades": "Se le atribuye calma."},
+               {"id": 2, "nombre": "Turmalina negra", "precio": "40.00", "disponible": false, "ultima_unidad": false,
+                "propiedades": null}],
  "imagenes": [{"url": "https://...jpg", "es_principal": true, "es_referencia_escala": false}]}
 ```
 - `tiene_variantes: false` → **no mostrar** el selector (producto con variante "Única").
 - Variante con `disponible: false` → opción deshabilitada; las demás siguen activas (HU027).
+- `ultima_unidad: true` → mostrar **"¡Última unidad!"** (HU003 Esc. 4). Nunca se expone la cantidad exacta.
 - Al elegir variante, mostrar su `precio` y sus `propiedades`.
 - `es_pieza_natural: true` → mostrar el aviso de variación natural (HU006).
 - `404` si no existe o está despublicado.
