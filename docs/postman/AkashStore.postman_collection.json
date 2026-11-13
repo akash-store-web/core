@@ -556,6 +556,52 @@
           ]
         },
         {
+          "name": "Registrar pedido (WhatsApp)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/pedidos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "pedidos"
+              ]
+            },
+            "description": "HU010. Registra el pedido «pendiente» (P-0001…) sin descontar stock. 201 = nuevo; 200 con `repetido: true` = doble envío. 409 si algo se agotó (`detail.items`); 422 por datos inválidos o distrito sin cobertura. ⚠️ Escribe en la base del entorno elegido. Avisa a Raúl para borrar el pedido de prueba.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"[PRUEBA] QA\",\n  \"celular\": \"900000000\",\n  \"distrito_id\": {{distrito_id}},\n  \"modalidad_entrega\": \"delivery\",\n  \"direccion\": \"Dirección de prueba\",\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201 o 200\", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));",
+                  "pm.test(\"Trae número P-\", () => pm.expect(pm.response.json().numero).to.match(/^P-\\d{4,}$/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Distritos con costo",
           "request": {
             "method": "GET",
@@ -1984,7 +2030,7 @@
                 {
                   "key": "estado",
                   "value": "",
-                  "description": "opcional, p. ej. por_validar"
+                  "description": "opcional, p. ej. pendiente"
                 },
                 {
                   "key": "q",
@@ -1993,7 +2039,7 @@
                 }
               ]
             },
-            "description": "Del más reciente al más antiguo. Estados: pendiente_pago, por_validar, confirmado, rechazado, enviado, entregado, vencido."
+            "description": "Del más reciente al más antiguo. Estados: pendiente, confirmado, cancelado, enviado, entregado."
           },
           "event": [
             {
@@ -2025,7 +2071,7 @@
                 "{{pedido_id}}"
               ]
             },
-            "description": "Clienta, ítems con precio histórico, totales, comprobante e historial de estados."
+            "description": "Clienta, ítems con precio histórico, totales e historial de estados."
           },
           "event": [
             {

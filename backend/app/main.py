@@ -13,6 +13,7 @@ from app.routers.auth import router as auth_router
 from app.routers.carrito import router as carrito_router
 from app.routers.catalogo import router as catalogo_router
 from app.routers.envio import router as envio_router
+from app.routers.pedidos import router as pedidos_router
 
 app = FastAPI(title="Akash Store API")
 app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS,
@@ -28,6 +29,7 @@ app.include_router(admin_pedidos_router)
 app.include_router(envio_router)
 app.include_router(catalogo_router)
 app.include_router(carrito_router)
+app.include_router(pedidos_router)
 
 @app.get("/health")
 def health():

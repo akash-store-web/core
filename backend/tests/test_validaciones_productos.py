@@ -198,7 +198,7 @@ def test_maximo_30_variantes_activas(client, auth, engine):
     assert "30 variantes activas" in respuesta.json()["detail"]
     # Retirar una con historial libera un cupo, pero reactivarla con 30 activas vuelve a fallar.
     with Session(engine) as db:
-        crear_pedido(db, "AK-0001", [(2, 1, "25.00")])
+        crear_pedido(db, "P-0001", [(2, 1, "25.00")])
     assert client.delete(f"{VARIANTES}/2", headers=auth).json()["desactivada"] is True
     assert _variante(client, auth, "Piedra 31").status_code == 201
     reactivar = client.put(f"{VARIANTES}/2", json={"nombre": "Piedra 2", "activa": True}, headers=auth)

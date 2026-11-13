@@ -356,43 +356,86 @@ Reenviar con `"confirmar_traslado": true` para moverlos. Los distritos sin zona 
 
 ## Panel: pedidos 🔒 (HU017)
 
-**Estados del pedido** (acordados con el PO; el mismo texto viaja en `estado`):
+**Estados del pedido** (decisión del PO del 10/11/2026: la venta se cierra por WhatsApp; el mismo texto viaja en `estado`):
 
 | `estado` | Significado | Etiqueta sugerida |
 |---|---|---|
-| `pendiente_pago` | Pedido creado; stock reservado hasta `reserva_vence` | Pendiente de pago |
-| `por_validar` | La clienta subió el comprobante | Por validar |
-| `confirmado` | Pago aprobado; se descontó el stock | Confirmado |
-| `rechazado` | Pago rechazado; no se descontó stock | Rechazado |
-| `enviado` | Despachado | Enviado |
-| `entregado` | Recibido por la clienta | Entregado |
-| `vencido` | La reserva venció sin pago | Vencido |
+| `pendiente` | La clienta lo envió por WhatsApp; **no** descuenta ni aparta stock | Pendiente |
+| `confirmado` | La propietaria cobró y confirmó la venta; se descontó el stock (HU018) | Confirmado |
+| `cancelado` | La clienta no concretó; el stock no cambia (HU018) | Cancelado |
+| `enviado` | Despachado (HU018) | Enviado |
+| `entregado` | Recibido por la clienta (HU018) | Entregado |
 
 ### `GET /admin/pedidos?estado=&q=` — bandeja
 Del más reciente al más antiguo. `q` busca por número, nombre o teléfono; `estado` filtra (`422` si no es uno de la tabla).
 ```json
-[{"id": 1, "numero": "AK-0001", "fecha": "2026-10-06T15:20:00Z", "clienta": "Ana Prueba", "telefono": "911111111",
-  "total": "140.00", "metodo_pago": "yape", "estado": "por_validar", "num_items": 3,
-  "tiene_comprobante": true, "reserva_vence": "2026-10-07T15:20:00Z"}]
+[{"id": 1, "numero": "P-0001", "fecha": "2026-11-12T15:20:00Z", "clienta": "Ana Prueba", "telefono": "911111111",
+  "total": "140.00", "metodo_pago": "whatsapp", "estado": "pendiente", "num_items": 3}]
 ```
 
 ### `GET /admin/pedidos/{id}` — detalle
 ```json
-{"id": 1, "numero": "AK-0001", "fecha": "2026-10-06T15:20:00Z", "estado": "por_validar",
- "clienta": {"nombre": "Ana Prueba", "telefono": "911111111", "correo": "clienta@ejemplo.com",
-             "direccion": "Av. Siempre Viva 123", "referencia": "Frente al parque"},
+{"id": 1, "numero": "P-0001", "fecha": "2026-11-12T15:20:00Z", "estado": "pendiente",
+ "clienta": {"nombre": "Ana Prueba", "telefono": "911111111", "correo": null,
+             "direccion": "Calle Ficticia 123", "referencia": null},
  "distrito": "Miraflores", "modalidad_entrega": "delivery",
  "items": [{"variante_id": 1, "producto_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
             "cantidad": 2, "precio_unitario": "45.00", "subtotal": "90.00"}],
- "subtotal": "130.00", "costo_envio": "10.00", "total": "140.00", "metodo_pago": "yape",
- "comprobante_url": "...", "reserva_vence": "2026-10-07T15:20:00Z",
- "historial": [{"estado": "pendiente_pago", "fecha": "...", "usuario": null},
-               {"estado": "por_validar", "fecha": "...", "usuario": null}]}
+ "subtotal": "130.00", "costo_envio": "10.00", "total": "140.00", "metodo_pago": "whatsapp",
+ "historial": [{"estado": "pendiente", "fecha": "...", "usuario": null}]}
 ```
-- `precio_unitario` es el **precio histórico** (el que pagó la clienta), aunque el producto cambie de precio después.
+- `precio_unitario` es el **precio histórico** (el del momento del pedido), aunque el producto cambie de precio después.
 - En `historial`, `usuario` es el email de quien hizo el cambio desde el panel; `null` = la clienta o el sistema.
-- Aún no hay pedidos reales: se crearán con `POST /pedidos` (HU010). Los botones aprobar/rechazar/enviado/entregado son HU018.
+- `correo`, `direccion` y `referencia` pueden venir en `null` (el pedido por WhatsApp no los exige).
+- ⚠️ Ya no existen `tiene_comprobante`, `reserva_vence` ni `comprobante_url` (se descartó el pago en la web).
+- Los botones Confirmar venta / Cancelar / Enviado / Entregado son HU018 (AKASH-202, próximo PR).
 - Los datos de la clienta son personales: no los copien en capturas ni en documentos.
+
+---
+
+## Público: enviar el pedido por WhatsApp (HU010)
+
+### `POST /pedidos` — registrar el pedido
+Sin login. Registra el pedido en estado `pendiente` con número correlativo (`P-0001`, `P-0002`…) y devuelve todo lo necesario para armar el mensaje de WhatsApp y la pantalla de confirmación. **No descuenta stock**: eso pasa cuando la propietaria confirma la venta en el panel (HU018).
+
+```json
+{"nombre": "Ana Prueba", "celular": "911111111", "distrito_id": 1, "modalidad_entrega": "delivery",
+ "direccion": "Calle Ficticia 123", "referencia": "Frente al parque",
+ "items": [{"variante_id": 1, "cantidad": 2}, {"variante_id": 2, "cantidad": 1}]}
+```
+
+| Campo | Regla |
+|---|---|
+| `nombre` | Obligatorio, 2 a 80 caracteres |
+| `celular` | Obligatorio, 9 dígitos que empiezan con 9 (sin `+51` ni espacios) |
+| `distrito_id` | Obligatorio, de `GET /envio/distritos`. Con `delivery` debe tener cobertura |
+| `modalidad_entrega` | `delivery` (cobra el costo de la zona) o `recojo` (envío 0.00) |
+| `direccion`, `referencia` | Opcionales, máx. 200 |
+| `items` | 1 a 50 líneas; `cantidad` entera de 1 a 10 por producto (las líneas repetidas se suman). Si mandan precios, se ignoran |
+
+**`201` pedido nuevo** · **`200` con `"repetido": true`** si el mismo celular manda el mismo carrito dentro de 2 minutos (doble clic, E9): devuelve el pedido ya registrado, no crea otro.
+```json
+{"numero": "P-0001", "estado": "pendiente", "fecha": "2026-11-12T15:20:00Z", "nombre": "Ana Prueba",
+ "celular": "911111111", "distrito": "Miraflores", "modalidad_entrega": "delivery",
+ "direccion": "Calle Ficticia 123", "referencia": "Frente al parque",
+ "items": [{"variante_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
+            "cantidad": 2, "precio_unitario": "45.00", "subtotal": "90.00"}],
+ "subtotal": "130.00", "costo_envio": "10.00", "total": "140.00", "repetido": false}
+```
+
+**Errores**
+- `422`: falta un dato o es inválido; distrito inexistente o **sin cobertura** con `delivery` (`detail` en texto: "El distrito no tiene cobertura de envío; escríbenos por WhatsApp para coordinar"); más de 10 unidades de un producto.
+- `409` con **`detail` objeto** si algo se agotó, se despublicó o no alcanza (E6). No se registra el pedido:
+```json
+{"detail": {"mensaje": "Algunos productos ya no están disponibles; quítalos o ajusta la cantidad antes de enviar",
+            "items": [{"variante_id": 2, "producto": "Anillo de plata 925 con piedra", "variante": "Turmalina negra",
+                       "estado": "agotado", "cantidad_maxima": 0, "mensaje": "Agotado; quítalo del pedido"}]}}
+```
+
+**Qué hace el frontend** (AKASH-196 Jeremies, AKASH-197 Litzy)
+1. Validar en el formulario lo mismo que la tabla (y deshabilitar el botón mientras se envía).
+2. Con `201`/`200`: armar el mensaje con `numero`, `items`, `total` y los datos; abrir `https://wa.me/<VITE_WHATSAPP_NUMBER>?text=<mensaje codificado>` (sirve en celular y en WhatsApp Web); vaciar el carrito; mostrar el número y un botón para volver a abrir WhatsApp (E8).
+3. Con `409`: marcar en el carrito las líneas de `detail.items` y pedir quitarlas o ajustarlas.
 
 ---
 
@@ -418,7 +461,7 @@ Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas
 - `precio_desde: true` → mostrar **"Desde S/ 40.00"** (HU002). `precio` es el menor entre las variantes **disponibles**;
   si todas están agotadas, el menor entre todas.
 - `disponible: false` → etiqueta **"Agotado"** y botón de compra deshabilitado (HU003); el producto se sigue mostrando.
-  La disponibilidad descuenta las unidades apartadas por pedidos vigentes (cuando existan, HU010).
+  El pedido pendiente (HU010) no aparta stock: la disponibilidad son las existencias.
 
 ### `GET /catalogo/categorias`
 Solo las categorías con algún producto publicado, en orden: `[{"id": 4, "nombre": "Anillos"}]`.

@@ -9,10 +9,11 @@ from app.schemas.carrito import CarritoIn, CarritoOut, ItemCarritoOut
 
 
 def unidades_reservadas(db: Session, variante_ids: list[int]) -> dict[int, int]:
-    """Unidades apartadas por pedidos pendientes de pago cuya reserva sigue vigente.
+    """Unidades apartadas por pedidos que aún no se venden.
 
-    Hoy devuelve {} porque aún no se crean pedidos (HU010/HU011). Cuando existan, este es el
-    único lugar que hay que completar: el carrito y el checkout ya restan lo que devuelva."""
+    Hoy devuelve {}: por decisión del PO (10/11/2026) el pedido «pendiente» de WhatsApp NO aparta
+    stock; el stock baja recién al confirmar la venta (HU018). Si algún día se reserva, este es el
+    único lugar que hay que completar: el carrito y POST /pedidos ya restan lo que devuelva."""
     return {}
 
 
