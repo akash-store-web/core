@@ -1,0 +1,465 @@
+/* ===== Filtros del catálogo (HU007) =====
+   Celular: panel lateral que se abre con «Filtrar» y cubre la pantalla.
+   Escritorio (≥ 900px): columna fija a la izquierda, como la referencia. */
+
+/* Texto solo para lectores de pantalla (no se ve, pero se lee) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ----- Distribución: filtros + resultados ----- */
+.Catalogo__cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+
+.Catalogo__resultados {
+  min-width: 0;
+}
+
+/* ----- Barra de celular: botón «Filtrar» ----- */
+.Catalogo__barra {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.Catalogo__filtrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 24px;
+  border: 1px solid var(--color-marron);
+  border-radius: 999px;
+  background: var(--color-blanco);
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.Catalogo__filtrar::before {
+  /* Ícono de "ajustes" hecho con CSS: tres líneas */
+  content: '';
+  width: 16px;
+  height: 12px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 50% / 70% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 100% / 40% 2px no-repeat;
+}
+
+.Catalogo__filtrar:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+/* ----- Avisos breves (E7 y enlace con precio inválido) ----- */
+.Catalogo__nota {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--color-marron);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-negro-calido);
+}
+
+/* ----- Chips de filtros aplicados ----- */
+.Catalogo__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  list-style: none;
+}
+
+.Chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 999px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.Chip:hover {
+  border-color: var(--color-marron);
+}
+
+.Chip:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+.Chip--limpiar {
+  border-color: transparent;
+  background: transparent;
+  color: var(--color-marron);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ----- Panel de filtros (celular: cerrado por defecto) ----- */
+.Filtros {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40; /* encima de la cabecera sticky (z-index 10) */
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 88vw);
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  box-shadow: 4px 0 24px rgb(37 34 22 / 0.2);
+  transform: translateX(-100%);
+  visibility: hidden; /* cerrado: tampoco se alcanza con Tab ni con el lector de pantalla */
+  /* Al cerrar, se oculta recién cuando termina de deslizarse (retraso de 0.25s) */
+  transition: transform 0.25s ease, visibility 0s linear 0.25s;
+}
+
+.Filtros--abierto {
+  transform: none;
+  visibility: visible;
+  /* Al abrir, es visible al instante: así puede recibir el foco de inmediato */
+  transition: transform 0.25s ease, visibility 0s;
+}
+
+.Filtros__fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background-color: rgb(37 34 22 / 0.45);
+}
+
+.Filtros__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-marmol-beige);
+}
+
+.Filtros__titulo {
+  font-family: var(--font-title);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--color-marron);
+}
+
+.Filtros__titulo:focus {
+  outline: none;
+}
+
+.Filtros__cerrar {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-negro-calido);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.Filtros__cerrar:focus-visible {
+  outline: 2px solid var(--color-marron);
+}
+
+.Filtros__contenido {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.Filtros__pie {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.Filtros__ver {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* El interruptor de HU029 dentro del panel va alineado a la izquierda */
+.Filtros .Disponibles {
+  justify-content: flex-start;
+  margin: 0;
+}
+
+/* ----- Grupos (Categoría, Precio) ----- */
+.Filtros__grupo {
+  min-width: 0;
+  border: 0;
+}
+
+.Filtros__leyenda {
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--color-marron);
+}
+
+.Filtros__lista {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.Filtros__opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 6px 0;
+  font-size: 15px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.Filtros__opcion input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-marron);
+}
+
+.Filtros__opcion:hover span:first-of-type {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.Filtros__opcion input:checked ~ span {
+  font-weight: 600;
+  color: var(--color-marron);
+}
+
+.Filtros__cantidad {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--color-marron);
+}
+
+/* Categoría que con los demás filtros quedaría vacía: se ve atenuada pero se puede elegir */
+.Filtros__opcion--vacia {
+  opacity: 0.55;
+}
+
+/* ----- Precio ----- */
+.Filtros__atajos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.Filtros__atajo {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 999px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.Filtros__atajo:hover {
+  border-color: var(--color-marron);
+}
+
+.Filtros__atajo[aria-pressed='true'] {
+  border-color: var(--color-marron);
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.Filtros__atajo:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+.FiltroPrecio__campos {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.FiltroPrecio__campo {
+  flex: 1;
+  min-width: 0;
+}
+
+.FiltroPrecio__campo label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--color-negro-calido);
+}
+
+.FiltroPrecio__entrada {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+  font-size: 14px;
+  color: var(--color-marron);
+}
+
+.FiltroPrecio__entrada:focus-within {
+  border-color: var(--color-marron);
+  outline: 2px solid var(--color-marron);
+  outline-offset: 1px;
+}
+
+.FiltroPrecio__entrada.campo-invalido {
+  border-color: var(--color-error);
+}
+
+.FiltroPrecio__entrada input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 16px; /* 16px evita que iPhone haga zoom al tocar el campo */
+}
+
+.FiltroPrecio__guion {
+  padding-bottom: 12px;
+  color: var(--color-marron);
+}
+
+.Filtros .CampoError {
+  margin-top: 8px;
+  color: var(--color-error);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.Filtros__aplicar {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: 1px solid var(--color-marron);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.Filtros__aplicar:hover {
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.Filtros__limpiar {
+  align-self: flex-start;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.Filtros__aplicar:focus-visible,
+.Filtros__limpiar:focus-visible,
+.Filtros__ver:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .Filtros {
+    transition: none;
+  }
+}
+
+/* ===== Escritorio: columna izquierda fija ===== */
+@media (min-width: 900px) {
+  .Catalogo__cuerpo {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 40px;
+    align-items: start;
+  }
+
+  /* Deja de ser un panel flotante y pasa a ser una columna normal */
+  .Filtros {
+    position: sticky;
+    inset: auto;
+    top: 88px; /* debajo de la cabecera sticky */
+    z-index: auto;
+    width: auto;
+    max-height: calc(100vh - 104px);
+    border-radius: 12px;
+    box-shadow: none;
+    transform: none;
+    visibility: visible;
+    transition: none;
+  }
+
+  .Filtros__cerrar,
+  .Filtros__pie,
+  .Filtros__fondo,
+  .Catalogo__barra {
+    display: none;
+  }
+
+  .Catalogo__chips {
+    justify-content: flex-start;
+  }
+}

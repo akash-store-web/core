@@ -241,8 +241,8 @@
   }
 }
 
-/* Pantallas anchas: 4 columnas */
-@media (min-width: 1100px) {
+/* Pantallas anchas: 4 columnas (desde 1280px, porque ahora la columna de filtros ocupa 280px) */
+@media (min-width: 1280px) {
   .Catalogo__grilla {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
