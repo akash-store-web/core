@@ -12,7 +12,7 @@ router = APIRouter(prefix="/admin/pedidos", tags=["admin: pedidos"], dependencie
 @router.get("", response_model=list[PedidoBandeja])
 def listar_pedidos(estado: str | None = None, q: str | None = None, db: Session = Depends(get_db)):
     """Bandeja de pedidos (HU017), del más reciente al más antiguo. `q` busca por número, nombre o teléfono.
-    Estados: pendiente_pago, por_validar, confirmado, rechazado, enviado, entregado, vencido."""
+    Estados: pendiente, confirmado, cancelado, enviado, entregado."""
     return servicio.listar_pedidos(db, estado, q)
 
 

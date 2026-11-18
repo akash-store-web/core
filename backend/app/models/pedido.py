@@ -6,17 +6,33 @@ from app.database import Base
 
 class EstadoPedido:
     """Estados del pedido. La columna `estado` es VARCHAR(20) sin restricción en la BD:
-    este es el único lugar donde se definen (HU011, HU017, HU018)."""
+    este es el único lugar donde se definen.
 
-    PENDIENTE_PAGO = "pendiente_pago"  # creado; stock reservado hasta reserva_vence (HU010)
-    POR_VALIDAR = "por_validar"        # la clienta adjuntó el comprobante (HU011)
-    CONFIRMADO = "confirmado"          # pago aprobado: se descuenta el stock (HU018)
-    RECHAZADO = "rechazado"            # pago rechazado: no se descuenta (HU018)
-    ENVIADO = "enviado"                # HU018
-    ENTREGADO = "entregado"            # HU018
-    VENCIDO = "vencido"                # la reserva venció sin pago
+    Decisión del PO (10/11/2026): la web es un catálogo y la venta se cierra por WhatsApp.
+    El pedido nace «pendiente» y NO aparta ni descuenta stock; el stock baja recién cuando la
+    propietaria confirma la venta en el panel (HU018)."""
 
-    TODOS = (PENDIENTE_PAGO, POR_VALIDAR, CONFIRMADO, RECHAZADO, ENVIADO, ENTREGADO, VENCIDO)
+    PENDIENTE = "pendiente"    # registrado desde la web; se coordina por WhatsApp (HU010)
+    CONFIRMADO = "confirmado"  # venta cobrada: se descuenta el stock (HU018)
+    CANCELADO = "cancelado"    # la clienta no concretó (HU018)
+    ENVIADO = "enviado"        # HU018
+    ENTREGADO = "entregado"    # HU018
+
+    TODOS = (PENDIENTE, CONFIRMADO, CANCELADO, ENVIADO, ENTREGADO)
+
+
+class MetodoPago:
+    WHATSAPP = "whatsapp"  # el pago se coordina por el chat (HU010)
+
+
+class ModalidadEntrega:
+    DELIVERY = "delivery"  # a un distrito con zona de envío; cobra el costo de la zona
+    RECOJO = "recojo"      # la clienta recoge; sin costo de envío
+
+    TODAS = (DELIVERY, RECOJO)
+
+
+PREFIJO_NUMERO = "P-"  # P-0001, P-0002… (HU010 escenario 1)
 
 
 class Pedido(Base):
@@ -32,9 +48,9 @@ class Pedido(Base):
     costo_envio = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
     total = Column(Numeric(10, 2), nullable=False)
     metodo_pago = Column(String(20), nullable=False)
-    comprobante_url = Column(String(255))
+    comprobante_url = Column(String(255))  # sin uso desde la venta por WhatsApp
     estado = Column(String(20), nullable=False)
-    reserva_vence = Column(DateTime(timezone=True))
+    reserva_vence = Column(DateTime(timezone=True))  # sin uso: el pedido no reserva stock
 
     cliente = relationship("Cliente")
     distrito = relationship("Distrito")
