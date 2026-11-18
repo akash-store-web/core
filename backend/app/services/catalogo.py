@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
@@ -93,21 +94,32 @@ def _intencion_activa(db: Session, intencion_id: int) -> bool:
 
 def listar_catalogo(db: Session, categoria_id: int | None = None, q: str | None = None,
                     solo_disponibles: bool = False, limite: int = LIMITE_MAXIMO,
-                    desde: int = 0, intencion_id: int | None = None) -> list[ProductoCatalogo]:
+                    desde: int = 0, intencion_id: int | None = None,
+                    precio_min: Decimal | None = None, precio_max: Decimal | None = None) -> list[ProductoCatalogo]:
+    if precio_min is not None and precio_max is not None and precio_min > precio_max:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "El precio mínimo no puede ser mayor que el máximo")
     if intencion_id is not None and not _intencion_activa(db, intencion_id):
         return []  # HU008: intención inexistente o desactivada → sin resultados (no es un error)
     consulta = _publicados(db).join(Producto.categoria).order_by(Categoria.orden, Producto.nombre)
-    if categoria_id is not None:
+    # HU007 E7: una categoría inexistente se ignora y se devuelve el catálogo completo (sin error).
+    if categoria_id is not None and db.get(Categoria, categoria_id) is not None:
         consulta = consulta.filter(Producto.categoria_id == categoria_id)
     if q and q.strip():
         consulta = consulta.filter(Producto.nombre.ilike(f"%{q.strip()}%"))
     productos = [p for p in consulta.all() if _es_listable(p)]
-    if intencion_id is not None:  # HU008 Esc.2: al menos una piedra activa con esa intención
-        productos = [p for p in productos if any(_tiene_intencion(v, intencion_id) for v in _activas(p))]
     disponibles = disponibles_para_venta(db, [v for p in productos for v in _activas(p)])
+
+    def cumple(v: Variante) -> bool:
+        """Filtros por piedra: la MISMA variante activa debe tener la intención (HU008), estar en el rango
+        de precio (HU007 E8) y, con `solo_disponibles`, tener unidades libres (HU029)."""
+        precio = v.precio_efectivo
+        return ((intencion_id is None or _tiene_intencion(v, intencion_id))
+                and (precio_min is None or precio >= precio_min)
+                and (precio_max is None or precio <= precio_max)
+                and (not solo_disponibles or disponibles.get(v.id, 0) > 0))
+
+    productos = [p for p in productos if any(cumple(v) for v in _activas(p))]
     tarjetas = [ProductoCatalogo(**_tarjeta(p, disponibles)) for p in productos]
-    if solo_disponibles:  # HU029: ocultar los agotados (los que no tienen ninguna variante con stock)
-        tarjetas = [t for t in tarjetas if t.disponible]
     # HU029 Esc.2: los agotados van al final. sorted es estable: dentro de cada grupo se conserva
     # el orden de la consulta (categoría.orden y luego nombre).
     tarjetas.sort(key=lambda t: not t.disponible)
