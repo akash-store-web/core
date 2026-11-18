@@ -77,8 +77,19 @@ def test_el_stock_nunca_queda_negativo(client, auth, roll_on):
     dar_stock(client, auth, 1, 2)
     respuesta = _ajuste(client, auth, cantidad=-3, motivo="Perdido en el traslado")
     assert respuesta.status_code == 409
+    # HU034 E8: el mensaje dice el stock actual
+    assert respuesta.json()["detail"] == "Las existencias no pueden quedar en negativo: hay 2 unidades"
     assert _existencias(client, auth, 1) == 2
     assert len(client.get("/admin/variantes/1/movimientos", headers=auth).json()) == 1  # el rechazado no se guarda
+
+
+def test_el_409_dice_el_stock_actual_en_singular_y_en_cero(client, auth, roll_on):
+    """HU034 E8 (QA del Sprint 2)."""
+    respuesta = _ajuste(client, auth, cantidad=-1, motivo="Se rompió")
+    assert respuesta.json()["detail"] == "Las existencias no pueden quedar en negativo: hay 0 unidades"
+    dar_stock(client, auth, 1, 1)
+    respuesta = _ajuste(client, auth, cantidad=-2, motivo="Se rompió")
+    assert respuesta.json()["detail"] == "Las existencias no pueden quedar en negativo: hay 1 unidad"
 
 
 def test_ajuste_fuera_de_rango_o_con_motivo_largo(client, auth, roll_on):
