@@ -215,7 +215,8 @@ def test_tarjeta_y_ficha_no_exponen_costos_proveedores_ni_existencias(client, au
     ficha = client.get(f"/catalogo/{pid}").json()
     assert not _claves(tarjetas) & PROHIBIDAS
     assert not _claves(ficha) & PROHIBIDAS
-    assert set(ficha["variantes"][0]) == {"id", "nombre", "precio", "disponible", "ultima_unidad", "propiedades"}
+    assert set(ficha["variantes"][0]) == {"id", "nombre", "precio", "disponible", "ultima_unidad", "propiedades",
+                                          "intenciones"}
     # Las cantidades exactas (3 y 2) no aparecen como valores numéricos en la ficha
     assert all(not isinstance(v, int) or k == "id" for var in ficha["variantes"] for k, v in var.items()
                if not isinstance(v, bool))
