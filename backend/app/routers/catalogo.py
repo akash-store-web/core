@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas.catalogo import CategoriaPublica, FichaProducto, ProductoCatalogo
+from app.schemas.intencion import IntencionCatalogo
 from app.services import catalogo as servicio
 
 router = APIRouter(prefix="/catalogo", tags=["catálogo (público)"])
@@ -13,16 +14,25 @@ router = APIRouter(prefix="/catalogo", tags=["catálogo (público)"])
 def listar_catalogo(categoria_id: int | None = None, q: str | None = None, solo_disponibles: bool = False,
                     limite: int = Query(servicio.LIMITE_MAXIMO, ge=1, le=servicio.LIMITE_MAXIMO),
                     desde: int = Query(0, ge=0),
+                    intencion_id: int | None = None,
                     db: Session = Depends(get_db)):
     """Solo productos publicados (HU016), con precio visible (HU002) y disponibilidad (HU003).
     Los agotados van al final; `solo_disponibles=true` los oculta (HU029).
-    Paginación opcional (HU001): `limite` 1-100 y `desde` (posición inicial, desde 0)."""
-    return servicio.listar_catalogo(db, categoria_id, q, solo_disponibles, limite, desde)
+    Paginación opcional (HU001): `limite` 1-100 y `desde` (posición inicial, desde 0).
+    `intencion_id` (HU008): productos con al menos una piedra con esa intención; si no existe o está
+    desactivada, la lista sale vacía."""
+    return servicio.listar_catalogo(db, categoria_id, q, solo_disponibles, limite, desde, intencion_id)
 
 
 @router.get("/categorias", response_model=list[CategoriaPublica])
 def listar_categorias(db: Session = Depends(get_db)):
     return servicio.listar_categorias(db)
+
+
+@router.get("/intenciones", response_model=list[IntencionCatalogo])
+def listar_intenciones(db: Session = Depends(get_db)):
+    """HU008: intenciones activas con `productos` = cuántos productos salen al filtrar por cada una."""
+    return servicio.listar_intenciones(db)
 
 
 @router.get("/{producto_id}", response_model=FichaProducto)

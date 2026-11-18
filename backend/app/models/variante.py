@@ -18,6 +18,8 @@ class Variante(Base):
     activa = Column(Boolean, nullable=False, default=True, server_default="true")
 
     producto = relationship("Producto", back_populates="variantes")
+    # HU008: intenciones de la piedra (0 a 5), activas e inactivas; las salidas omiten las inactivas (HU005 E5).
+    intenciones = relationship("Intencion", secondary="variante_intencion", order_by="Intencion.nombre")
 
     @property
     def agotado(self) -> bool:

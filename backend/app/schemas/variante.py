@@ -1,8 +1,9 @@
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from app.schemas.intencion import IntencionBreve
 from app.schemas.producto import Precio, PrecioOut
 
 
@@ -38,6 +39,13 @@ class VarianteOut(BaseModel):
     agotado: bool
     propiedades: str | None
     activa: bool  # False = retirada: no se vende ni se compra, pero conserva su historial
+    # HU008: intenciones asignadas (solo las activas), por nombre. Se cambian con PUT /admin/variantes/{id}/intenciones.
+    intenciones: list[IntencionBreve] = []
+
+    @field_validator("intenciones", mode="before")
+    @classmethod
+    def _solo_activas(cls, valor):
+        return [i for i in valor or [] if getattr(i, "activa", True)]
 
 
 class VarianteEliminada(BaseModel):
