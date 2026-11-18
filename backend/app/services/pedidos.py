@@ -1,4 +1,5 @@
-"""HU010: registrar el pedido que se envía por WhatsApp. HU017: bandeja y detalle del panel."""
+"""HU010: registrar el pedido que se envía por WhatsApp. HU017: bandeja y detalle del panel.
+HU018: cambiar el estado del pedido (confirmar la venta descuenta el stock)."""
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -9,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.cliente import Cliente
+from app.models.movimiento_stock import TipoMovimiento
 from app.models.distrito import Distrito
 from app.models.pedido import (PREFIJO_NUMERO, DetallePedido, EstadoPedido, HistorialEstadoPedido, MetodoPago,
                                ModalidadEntrega, Pedido)
@@ -18,6 +20,7 @@ from app.schemas.pedido import (MAX_POR_LINEA, CambioEstadoOut, ClientaOut, Item
                                 PedidoBandeja, PedidoCreadoOut, PedidoDetalle, PedidoIn)
 from app.services.carrito import validar_carrito
 from app.services.envios import costo_envio
+from app.services.movimientos import registrar_movimiento
 
 VENTANA_DOBLE_ENVIO = timedelta(minutes=2)  # HU010 E9
 
@@ -200,3 +203,85 @@ def obtener_pedido(db: Session, pedido_id: int) -> PedidoDetalle:
             for h in pedido.historial
         ],
     )
+
+
+# --- HU018: cambiar el estado del pedido ---
+
+# Transiciones válidas (decisión de Raúl): cancelado y entregado son finales.
+TRANSICIONES = {
+    EstadoPedido.PENDIENTE: {EstadoPedido.CONFIRMADO, EstadoPedido.CANCELADO},
+    EstadoPedido.CONFIRMADO: {EstadoPedido.ENVIADO, EstadoPedido.CANCELADO},
+    EstadoPedido.ENVIADO: {EstadoPedido.ENTREGADO},
+    EstadoPedido.CANCELADO: set(),
+    EstadoPedido.ENTREGADO: set(),
+}
+
+
+def _faltantes(db: Session, pedido: Pedido) -> list[dict]:
+    """HU018 E4: líneas cuyo stock actual no alcanza (las líneas de una misma variante se suman)."""
+    pedidas = Counter()
+    for d in pedido.detalles:
+        pedidas[d.variante_id] += d.cantidad
+    faltan = []
+    for variante_id, solicitada in pedidas.items():
+        variante = db.get(Variante, variante_id)
+        if variante.existencias < solicitada:
+            faltan.append({"variante_id": variante_id, "producto": variante.producto.nombre,
+                           "variante": variante.nombre, "solicitada": solicitada,
+                           "disponible": max(variante.existencias, 0)})
+    return faltan
+
+
+def cambiar_estado(db: Session, pedido_id: int, nuevo_estado: str, usuario_id: int) -> PedidoDetalle:
+    """HU018. Todo en una transacción: si algo falla, no queda nada a medias.
+
+    - Confirmar: descuenta el stock con un movimiento `venta` por línea (409 si no alcanza, E4).
+    - Cancelar un confirmado: devuelve el stock con un `ajuste` por línea (decisión de Raúl, HU019 E7).
+    - Cancelar un pendiente, enviado y entregado: solo estado e historial."""
+    if nuevo_estado not in EstadoPedido.TODOS or nuevo_estado == EstadoPedido.PENDIENTE:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Estado no válido")
+
+    # E5: la fila del pedido queda bloqueada hasta el commit; una segunda confirmación simultánea
+    # espera y vuelve a leer el estado ya cambiado (en SQLite, pruebas, FOR UPDATE se ignora).
+    pedido = (
+        db.query(Pedido).filter(Pedido.id == pedido_id)
+        .with_for_update().populate_existing()
+        .options(selectinload(Pedido.detalles))
+        .first()
+    )
+    if pedido is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Pedido no encontrado")
+
+    actual, numero = pedido.estado, pedido.numero
+    if nuevo_estado == actual:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, f"El pedido {numero} ya está {actual}")
+    if nuevo_estado not in TRANSICIONES.get(actual, set()):
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"No se puede pasar de {actual} a {nuevo_estado} (pedido {numero})")
+
+    try:
+        if nuevo_estado == EstadoPedido.CONFIRMADO:
+            faltan = _faltantes(db, pedido)
+            if faltan:
+                raise HTTPException(status.HTTP_409_CONFLICT, {
+                    "mensaje": f"No hay stock suficiente para confirmar el pedido {numero}",
+                    "items": faltan,
+                })
+            for d in pedido.detalles:
+                registrar_movimiento(db, d.variante_id, -d.cantidad, TipoMovimiento.VENTA,
+                                     pedido_id=pedido.id, usuario_id=usuario_id)
+        elif nuevo_estado == EstadoPedido.CANCELADO and actual == EstadoPedido.CONFIRMADO:
+            for d in pedido.detalles:
+                registrar_movimiento(db, d.variante_id, d.cantidad, TipoMovimiento.AJUSTE,
+                                     motivo=f"Cancelación del pedido {numero}",
+                                     pedido_id=pedido.id, usuario_id=usuario_id)
+        pedido.estado = nuevo_estado
+        db.add(HistorialEstadoPedido(pedido_id=pedido.id, estado=nuevo_estado, usuario_id=usuario_id,
+                                     fecha=datetime.now(timezone.utc)))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return obtener_pedido(db, pedido_id)

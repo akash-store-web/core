@@ -2010,7 +2010,7 @@
     },
     {
       "name": "9. Panel: pedidos 🔒",
-      "description": "Bandeja y detalle de pedidos (HU017). Solo lectura.",
+      "description": "Bandeja y detalle (HU017), cambio de estado (HU018) y ventas del mes (HU019).",
       "item": [
         {
           "name": "Bandeja de pedidos",
@@ -2072,6 +2072,93 @@
               ]
             },
             "description": "Clienta, ítems con precio histórico, totales e historial de estados."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cambiar estado del pedido",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/pedidos/{{pedido_id}}/estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "pedidos",
+                "{{pedido_id}}",
+                "estado"
+              ]
+            },
+            "description": "HU018. pendiente → confirmado | cancelado; confirmado → enviado | cancelado; enviado → entregado. Confirmar DESCUENTA stock (venta por línea); cancelar un confirmado lo devuelve (ajuste). 409 si la transición no vale o no alcanza el stock (detail objeto con items). ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"confirmado\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ventas del mes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/ventas/mes?anio=&mes=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "ventas",
+                "mes"
+              ],
+              "query": [
+                {
+                  "key": "anio",
+                  "value": "",
+                  "description": "opcional, junto con mes (p. ej. 2026)"
+                },
+                {
+                  "key": "mes",
+                  "value": "",
+                  "description": "opcional, 1 a 12"
+                }
+              ]
+            },
+            "description": "HU019. Ventas confirmadas del mes en hora de Lima, con el envío aparte y el mes anterior. Sin parámetros: el mes actual. 422 si el mes es futuro o anterior al primer pedido."
           },
           "event": [
             {

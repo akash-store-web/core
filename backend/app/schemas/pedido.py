@@ -105,6 +105,12 @@ class ItemPedidoOut(BaseModel):
     subtotal: Decimal = Field(examples=["90.00"])
 
 
+class CambioEstadoIn(BaseModel):
+    """HU018: botones Confirmar venta / Cancelar / Enviado / Entregado del panel."""
+
+    estado: Literal["confirmado", "cancelado", "enviado", "entregado"] = Field(examples=["confirmado"])
+
+
 class CambioEstadoOut(BaseModel):
     estado: str
     fecha: datetime

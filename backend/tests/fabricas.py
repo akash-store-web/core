@@ -10,8 +10,13 @@ from app.models.pedido import DetallePedido, EstadoPedido, HistorialEstadoPedido
 
 def crear_pedido(db: Session, numero: str, items: list[tuple[int, int, str]], estado: str = EstadoPedido.PENDIENTE,
                  nombre: str = "Clienta de Prueba", telefono: str = "900000001", fecha: datetime | None = None,
-                 distrito_id: int | None = None, costo_envio: str = "10.00") -> Pedido:
-    """items: [(variante_id, cantidad, precio_unitario)]."""
+                 distrito_id: int | None = None, costo_envio: str = "10.00",
+                 confirmado_en: datetime | None = None) -> Pedido:
+    """items: [(variante_id, cantidad, precio_unitario)]. No mueve stock: es un pedido «histórico».
+
+    El historial sigue el camino real (HU018): enviado y entregado pasan antes por confirmado, cada paso
+    10 minutos después del anterior. `confirmado_en` fija la fecha de confirmación (HU019: la venta cuenta
+    en el mes en que se confirmó)."""
     cliente = Cliente(nombre=nombre, telefono=telefono, correo="clienta@ejemplo.com",
                       direccion="Av. Siempre Viva 123", referencia="Frente al parque")
     subtotal = sum(Decimal(precio) * cantidad for _, cantidad, precio in items)
@@ -23,8 +28,20 @@ def crear_pedido(db: Session, numero: str, items: list[tuple[int, int, str]], es
     )
     pedido.detalles = [DetallePedido(variante_id=v, cantidad=c, precio_unitario=Decimal(p)) for v, c, p in items]
     pedido.historial = [HistorialEstadoPedido(estado=EstadoPedido.PENDIENTE, fecha=fecha)]
-    if estado != EstadoPedido.PENDIENTE:
-        pedido.historial.append(HistorialEstadoPedido(estado=estado, fecha=fecha + timedelta(minutes=10)))
+    caminos = {
+        EstadoPedido.PENDIENTE: [],
+        EstadoPedido.CONFIRMADO: [EstadoPedido.CONFIRMADO],
+        EstadoPedido.CANCELADO: [EstadoPedido.CANCELADO],
+        EstadoPedido.ENVIADO: [EstadoPedido.CONFIRMADO, EstadoPedido.ENVIADO],
+        EstadoPedido.ENTREGADO: [EstadoPedido.CONFIRMADO, EstadoPedido.ENVIADO, EstadoPedido.ENTREGADO],
+    }
+    paso = fecha
+    for siguiente in caminos[estado]:
+        if siguiente == EstadoPedido.CONFIRMADO and confirmado_en is not None:
+            paso = confirmado_en
+        else:
+            paso = paso + timedelta(minutes=10)
+        pedido.historial.append(HistorialEstadoPedido(estado=siguiente, fecha=paso))
     db.add(pedido)
     db.commit()
     db.refresh(pedido)
