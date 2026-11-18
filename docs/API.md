@@ -362,7 +362,7 @@ Reenviar con `"confirmar_traslado": true` para moverlos. Los distritos sin zona 
 |---|---|---|
 | `pendiente` | La clienta lo envió por WhatsApp; **no** descuenta ni aparta stock | Pendiente |
 | `confirmado` | La propietaria cobró y confirmó la venta; se descontó el stock (HU018) | Confirmado |
-| `cancelado` | La clienta no concretó; el stock no cambia (HU018) | Cancelado |
+| `cancelado` | La clienta no concretó; si estaba confirmado, se devuelve el stock (HU018) | Cancelado |
 | `enviado` | Despachado (HU018) | Enviado |
 | `entregado` | Recibido por la clienta (HU018) | Entregado |
 
@@ -388,8 +388,56 @@ Del más reciente al más antiguo. `q` busca por número, nombre o teléfono; `e
 - En `historial`, `usuario` es el email de quien hizo el cambio desde el panel; `null` = la clienta o el sistema.
 - `correo`, `direccion` y `referencia` pueden venir en `null` (el pedido por WhatsApp no los exige).
 - ⚠️ Ya no existen `tiene_comprobante`, `reserva_vence` ni `comprobante_url` (se descartó el pago en la web).
-- Los botones Confirmar venta / Cancelar / Enviado / Entregado son HU018 (AKASH-202, próximo PR).
 - Los datos de la clienta son personales: no los copien en capturas ni en documentos.
+
+### `PATCH /admin/pedidos/{id}/estado` — Confirmar venta / Cancelar / Enviado / Entregado (HU018)
+```json
+{"estado": "confirmado"}
+```
+Responde `200` con el **detalle del pedido actualizado** (mismo formato que `GET /admin/pedidos/{id}`); el historial suma el nuevo estado con fecha y el email de quien lo cambió.
+
+| Estado actual | Puede pasar a | Qué pasa con el stock |
+|---|---|---|
+| `pendiente` | `confirmado` | **Descuenta** el stock: un movimiento `venta` por línea (ligado al pedido) |
+| `pendiente` | `cancelado` | Nada |
+| `confirmado` | `enviado` | Nada |
+| `confirmado` | `cancelado` | **Devuelve** el stock: un movimiento `ajuste` por línea con motivo "Cancelación del pedido P-0001" |
+| `enviado` | `entregado` | Nada |
+| `cancelado`, `entregado` | — (finales) | — |
+
+Todo ocurre en una sola transacción: si algo falla, el pedido y el stock quedan como estaban.
+
+**Errores**
+- `401` sin token · `404` pedido inexistente · `422` si `estado` no es `confirmado`, `cancelado`, `enviado` o `entregado`.
+- `409` con `detail` **texto** si la transición no está permitida (botón repetido o doble clic incluidos):
+  `"El pedido P-0001 ya está confirmado"` · `"No se puede pasar de entregado a cancelado (pedido P-0001)"`.
+- `409` con `detail` **objeto** si al confirmar no alcanza el stock (E4). No se cambia nada:
+```json
+{"detail": {"mensaje": "No hay stock suficiente para confirmar el pedido P-0001",
+            "items": [{"variante_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
+                       "solicitada": 5, "disponible": 3}]}}
+```
+
+**Qué hace el frontend**: mostrar solo los botones válidos según la tabla; tras `200`, reemplazar el detalle con la respuesta; con `409`, mostrar `detail` (si es objeto, `detail.mensaje` y la lista de `detail.items`) y volver a cargar el pedido. Después de confirmar, una variante que llegó a 0 ya se ve agotada en el catálogo.
+
+---
+
+## Panel: ventas del mes 🔒 (HU019)
+
+### `GET /admin/ventas/mes?anio=2026&mes=10`
+`anio` y `mes` son opcionales, pero van **juntos**; sin ellos, el mes actual en hora de Lima.
+- Una venta cuenta en el mes en que se **confirmó** (no en el que se creó el pedido), en hora de Lima.
+- Solo suman los pedidos cuyo estado actual es `confirmado`, `enviado` o `entregado`; un confirmado que luego se canceló ya no suma.
+- `total_productos` (suma de subtotales) y `total_envio` van por separado; `total` = ambos. Incluye el mes anterior para comparar.
+```json
+{"anio": 2026, "mes": 10, "pedidos": 3, "total_productos": "175.00", "total_envio": "35.00", "total": "210.00",
+ "sin_ventas": false, "mensaje": null,
+ "mes_anterior": {"anio": 2026, "mes": 9, "pedidos": 1, "total_productos": "100.00", "total_envio": "10.00",
+                  "total": "110.00"}}
+```
+Sin ventas: `200` con montos `"0.00"`, `"sin_ventas": true` y `"mensaje": "No hubo ventas confirmadas en noviembre de 2026"`.
+
+**Errores** (`422`, `detail` en texto): mes fuera de 1..12 · solo `anio` o solo `mes` ("Indica el año y el mes juntos") · `"No se puede consultar un mes futuro"` · `"No hay registros antes de septiembre de 2026"` (mes anterior al primer pedido registrado; si aún no hay pedidos, solo vale el mes actual) · `401` sin token.
 
 ---
 

@@ -242,7 +242,7 @@ items = [
         req("Compras del producto", "GET", "/admin/productos/{{producto_id}}/compras",
             descripcion="HU033 escenario 4: con qué compras ingresó su stock.", eventos=codigo(200)),
     ]),
-    carpeta("9. Panel: pedidos 🔒", "Bandeja y detalle de pedidos (HU017). Solo lectura.", [
+    carpeta("9. Panel: pedidos 🔒", "Bandeja y detalle (HU017), cambio de estado (HU018) y ventas del mes (HU019).", [
         req("Bandeja de pedidos", "GET", "/admin/pedidos",
             descripcion="Del más reciente al más antiguo. Estados: pendiente, confirmado, cancelado, "
                         "enviado, entregado.",
@@ -254,6 +254,17 @@ items = [
         req("Detalle del pedido", "GET", "/admin/pedidos/{{pedido_id}}",
             descripcion="Clienta, ítems con precio histórico, totales e historial de estados.",
             eventos=codigo(200)),
+        req("Cambiar estado del pedido", "PATCH", "/admin/pedidos/{{pedido_id}}/estado", {"estado": "confirmado"},
+            "HU018. pendiente → confirmado | cancelado; confirmado → enviado | cancelado; enviado → entregado. "
+            "Confirmar DESCUENTA stock (venta por línea); cancelar un confirmado lo devuelve (ajuste). 409 si la "
+            "transición no vale o no alcanza el stock (detail objeto con items). " + ESCRIBE,
+            codigo(200)),
+        req("Ventas del mes", "GET", "/admin/ventas/mes",
+            descripcion="HU019. Ventas confirmadas del mes en hora de Lima, con el envío aparte y el mes anterior. "
+                        "Sin parámetros: el mes actual. 422 si el mes es futuro o anterior al primer pedido.",
+            eventos=codigo(200),
+            query=[{"key": "anio", "value": "", "description": "opcional, junto con mes (p. ej. 2026)"},
+                   {"key": "mes", "value": "", "description": "opcional, 1 a 12"}]),
     ]),
 ]
 

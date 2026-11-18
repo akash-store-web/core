@@ -9,6 +9,7 @@ from app.routers.admin_movimientos import router as admin_movimientos_router
 from app.routers.admin_pedidos import router as admin_pedidos_router
 from app.routers.admin_productos import router as admin_productos_router
 from app.routers.admin_variantes import router as admin_variantes_router
+from app.routers.admin_ventas import router as admin_ventas_router
 from app.routers.auth import router as auth_router
 from app.routers.carrito import router as carrito_router
 from app.routers.catalogo import router as catalogo_router
@@ -26,6 +27,7 @@ app.include_router(admin_compras_router)
 app.include_router(admin_imagenes_router)
 app.include_router(admin_envios_router)
 app.include_router(admin_pedidos_router)
+app.include_router(admin_ventas_router)
 app.include_router(envio_router)
 app.include_router(catalogo_router)
 app.include_router(carrito_router)
