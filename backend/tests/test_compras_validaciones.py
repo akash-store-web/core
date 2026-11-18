@@ -120,7 +120,7 @@ def test_costo_igual_al_precio_no_avisa(client, auth, roll_on):
 
 def test_no_se_compra_una_variante_desactivada(client, auth, roll_on, engine):
     with Session(engine) as db:
-        crear_pedido(db, "AK-0001", [(2, 1, "20.00")])
+        crear_pedido(db, "P-0001", [(2, 1, "20.00")])
     assert client.delete("/admin/productos/1/variantes/2", headers=auth).json()["desactivada"] is True
     respuesta = _comprar(client, auth, items=[{"variante_id": 2, "cantidad": 1, "costo_unitario": "5.00"}])
     assert respuesta.status_code == 422

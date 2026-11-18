@@ -11,6 +11,7 @@ class Cliente(Base):
     id = Column(Integer, primary_key=True)
     nombre = Column(String(120), nullable=False)
     telefono = Column(String(20), nullable=False)
-    correo = Column(String(120), nullable=False)
-    direccion = Column(String(200), nullable=False)
+    # Opcionales desde HU010 (pedido por WhatsApp): docs/sql/2026-11_sprint3_pedidos_whatsapp.sql
+    correo = Column(String(120))
+    direccion = Column(String(200))
     referencia = Column(String(200))

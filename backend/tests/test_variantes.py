@@ -133,7 +133,7 @@ def test_variante_con_pedidos_se_desactiva_en_lugar_de_borrarse(client, auth, en
     _producto(client, auth)
     vid = _variante(client, auth).json()["id"]
     with Session(engine) as db:
-        crear_pedido(db, "AK-0001", [(vid, 1, "25.00")])
+        crear_pedido(db, "P-0001", [(vid, 1, "25.00")])
     respuesta = client.delete(f"{URL}/{vid}", headers=auth)
     assert respuesta.status_code == 200
     assert respuesta.json()["desactivada"] is True

@@ -131,6 +131,16 @@ items = [
             test('pm.test("Responde 200", () => pm.response.to.have.status(200));',
                  'pm.test("Trae valido y total", () => { const d = pm.response.json(); pm.expect(d).to.have.property("valido"); pm.expect(d.total).to.be.a("string"); });'),
             publico=True),
+        req("Registrar pedido (WhatsApp)", "POST", "/pedidos",
+            {"nombre": "[PRUEBA] QA", "celular": "900000000", "distrito_id": "{{distrito_id}}",
+             "modalidad_entrega": "delivery", "direccion": "Dirección de prueba",
+             "items": [{"variante_id": "{{variante_id}}", "cantidad": 1}]},
+            "HU010. Registra el pedido «pendiente» (P-0001…) sin descontar stock. 201 = nuevo; 200 con "
+            "`repetido: true` = doble envío. 409 si algo se agotó (`detail.items`); 422 por datos inválidos "
+            "o distrito sin cobertura. " + ESCRIBE + " Avisa a Raúl para borrar el pedido de prueba.",
+            test('pm.test("Responde 201 o 200", () => pm.expect(pm.response.code).to.be.oneOf([200, 201]));',
+                 'pm.test("Trae número P-", () => pm.expect(pm.response.json().numero).to.match(/^P-\\d{4,}$/));'),
+            publico=True),
         req("Distritos con costo", "GET", "/envio/distritos", publico=True, eventos=codigo(200)),
         req("Costo de envío de un distrito", "GET", "/envio/costo", publico=True, eventos=codigo(200),
             query=[{"key": "distrito_id", "value": "{{distrito_id}}"}]),
@@ -256,18 +266,29 @@ items = [
         req("Compras del producto", "GET", "/admin/productos/{{producto_id}}/compras",
             descripcion="HU033 escenario 4: con qué compras ingresó su stock.", eventos=codigo(200)),
     ]),
-    carpeta("9. Panel: pedidos 🔒", "Bandeja y detalle de pedidos (HU017). Solo lectura.", [
+    carpeta("9. Panel: pedidos 🔒", "Bandeja y detalle (HU017), cambio de estado (HU018) y ventas del mes (HU019).", [
         req("Bandeja de pedidos", "GET", "/admin/pedidos",
-            descripcion="Del más reciente al más antiguo. Estados: pendiente_pago, por_validar, confirmado, "
-                        "rechazado, enviado, entregado, vencido.",
+            descripcion="Del más reciente al más antiguo. Estados: pendiente, confirmado, cancelado, "
+                        "enviado, entregado.",
             eventos=test('pm.test("Responde 200", () => pm.response.to.have.status(200));',
                          'const p = pm.response.json();',
                          'if (p.length) pm.collectionVariables.set("pedido_id", p[0].id);'),
-            query=[{"key": "estado", "value": "", "description": "opcional, p. ej. por_validar"},
+            query=[{"key": "estado", "value": "", "description": "opcional, p. ej. pendiente"},
                    {"key": "q", "value": "", "description": "número, nombre o teléfono (opcional)"}]),
         req("Detalle del pedido", "GET", "/admin/pedidos/{{pedido_id}}",
-            descripcion="Clienta, ítems con precio histórico, totales, comprobante e historial de estados.",
+            descripcion="Clienta, ítems con precio histórico, totales e historial de estados.",
             eventos=codigo(200)),
+        req("Cambiar estado del pedido", "PATCH", "/admin/pedidos/{{pedido_id}}/estado", {"estado": "confirmado"},
+            "HU018. pendiente → confirmado | cancelado; confirmado → enviado | cancelado; enviado → entregado. "
+            "Confirmar DESCUENTA stock (venta por línea); cancelar un confirmado lo devuelve (ajuste). 409 si la "
+            "transición no vale o no alcanza el stock (detail objeto con items). " + ESCRIBE,
+            codigo(200)),
+        req("Ventas del mes", "GET", "/admin/ventas/mes",
+            descripcion="HU019. Ventas confirmadas del mes en hora de Lima, con el envío aparte y el mes anterior. "
+                        "Sin parámetros: el mes actual. 422 si el mes es futuro o anterior al primer pedido.",
+            eventos=codigo(200),
+            query=[{"key": "anio", "value": "", "description": "opcional, junto con mes (p. ej. 2026)"},
+                   {"key": "mes", "value": "", "description": "opcional, 1 a 12"}]),
     ]),
 ]
 

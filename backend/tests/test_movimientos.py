@@ -147,11 +147,11 @@ def test_historial_inexistente_y_sin_token(client, auth, roll_on):
 def test_venta_resta_stock_y_guarda_el_pedido(client, auth, roll_on, engine):
     dar_stock(client, auth, 1, 3)
     with Session(engine) as db:
-        pedido = crear_pedido(db, "AK-0001", [(1, 2, "30.00")])
+        pedido = crear_pedido(db, "P-0001", [(1, 2, "30.00")])
         registrar_movimiento(db, 1, -2, TipoMovimiento.VENTA, pedido_id=pedido.id)
         db.commit()
     venta = client.get("/admin/variantes/1/movimientos", headers=auth).json()[0]
-    assert (venta["tipo"], venta["cantidad"], venta["saldo"], venta["pedido_numero"]) == ("venta", -2, 1, "AK-0001")
+    assert (venta["tipo"], venta["cantidad"], venta["saldo"], venta["pedido_numero"]) == ("venta", -2, 1, "P-0001")
     assert venta["usuario"] is None  # registrado por el sistema
 
 
