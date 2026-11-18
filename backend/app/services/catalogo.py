@@ -1,10 +1,13 @@
 import logging
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.categoria import Categoria
+from app.models.intencion import Intencion
 from app.models.producto import Producto
+from app.models.variante import Variante
 from app.schemas.catalogo import (
     CategoriaPublica,
     FichaProducto,
@@ -12,8 +15,10 @@ from app.schemas.catalogo import (
     ProductoCatalogo,
     VariantePublica,
 )
+from app.schemas.intencion import IntencionCatalogo
 from app.services.carrito import disponibles_para_venta
-from app.services.productos import VARIANTE_UNICA, foto_principal
+from app.services.intenciones import activas
+from app.services.productos import VARIANTE_UNICA, aviso_pieza_natural, foto_principal
 
 log = logging.getLogger("akash.catalogo")
 
@@ -61,8 +66,14 @@ def _publicados(db: Session):
     return (
         db.query(Producto)
         .filter(Producto.publicado.is_(True))
-        .options(selectinload(Producto.categoria), selectinload(Producto.variantes), selectinload(Producto.imagenes))
+        .options(selectinload(Producto.categoria), selectinload(Producto.imagenes),
+                 selectinload(Producto.variantes).selectinload(Variante.intenciones))
     )
+
+
+def _tiene_intencion(variante: Variante, intencion_id: int) -> bool:
+    """HU008: solo cuentan las intenciones activas (HU005 E5)."""
+    return any(i.id == intencion_id for i in activas(variante.intenciones))
 
 
 def listar_categorias(db: Session) -> list[CategoriaPublica]:
@@ -76,24 +87,57 @@ def listar_categorias(db: Session) -> list[CategoriaPublica]:
     return [CategoriaPublica(id=c.id, nombre=c.nombre) for c in categorias]
 
 
+def _intencion_activa(db: Session, intencion_id: int) -> bool:
+    intencion = db.get(Intencion, intencion_id)
+    return intencion is not None and intencion.activa
+
+
 def listar_catalogo(db: Session, categoria_id: int | None = None, q: str | None = None,
                     solo_disponibles: bool = False, limite: int = LIMITE_MAXIMO,
-                    desde: int = 0) -> list[ProductoCatalogo]:
+                    desde: int = 0, intencion_id: int | None = None,
+                    precio_min: Decimal | None = None, precio_max: Decimal | None = None) -> list[ProductoCatalogo]:
+    if precio_min is not None and precio_max is not None and precio_min > precio_max:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "El precio mínimo no puede ser mayor que el máximo")
+    if intencion_id is not None and not _intencion_activa(db, intencion_id):
+        return []  # HU008: intención inexistente o desactivada → sin resultados (no es un error)
     consulta = _publicados(db).join(Producto.categoria).order_by(Categoria.orden, Producto.nombre)
-    if categoria_id is not None:
+    # HU007 E7: una categoría inexistente se ignora y se devuelve el catálogo completo (sin error).
+    if categoria_id is not None and db.get(Categoria, categoria_id) is not None:
         consulta = consulta.filter(Producto.categoria_id == categoria_id)
     if q and q.strip():
         consulta = consulta.filter(Producto.nombre.ilike(f"%{q.strip()}%"))
     productos = [p for p in consulta.all() if _es_listable(p)]
     disponibles = disponibles_para_venta(db, [v for p in productos for v in _activas(p)])
+
+    def cumple(v: Variante) -> bool:
+        """Filtros por piedra: la MISMA variante activa debe tener la intención (HU008), estar en el rango
+        de precio (HU007 E8) y, con `solo_disponibles`, tener unidades libres (HU029)."""
+        precio = v.precio_efectivo
+        return ((intencion_id is None or _tiene_intencion(v, intencion_id))
+                and (precio_min is None or precio >= precio_min)
+                and (precio_max is None or precio <= precio_max)
+                and (not solo_disponibles or disponibles.get(v.id, 0) > 0))
+
+    productos = [p for p in productos if any(cumple(v) for v in _activas(p))]
     tarjetas = [ProductoCatalogo(**_tarjeta(p, disponibles)) for p in productos]
-    if solo_disponibles:  # HU029: ocultar los agotados (los que no tienen ninguna variante con stock)
-        tarjetas = [t for t in tarjetas if t.disponible]
     # HU029 Esc.2: los agotados van al final. sorted es estable: dentro de cada grupo se conserva
     # el orden de la consulta (categoría.orden y luego nombre).
     tarjetas.sort(key=lambda t: not t.disponible)
     # HU001: paginación simple, después de ordenar para que las páginas sean coherentes.
     return tarjetas[desde:desde + limite]
+
+
+def listar_intenciones(db: Session) -> list[IntencionCatalogo]:
+    """HU008: intenciones activas con cuántos productos aparecerían al filtrar por cada una (sin otros filtros).
+    El frontend las usa para el filtro y para sugerir las que tienen productos cuando no hay resultados (E7)."""
+    productos = [p for p in _publicados(db).all() if _es_listable(p)]
+    conteo: dict[int, int] = {}
+    for producto in productos:
+        ids = {i.id for v in _activas(producto) for i in activas(v.intenciones)}
+        for intencion_id in ids:
+            conteo[intencion_id] = conteo.get(intencion_id, 0) + 1
+    intenciones = db.query(Intencion).filter(Intencion.activa.is_(True)).order_by(Intencion.nombre).all()
+    return [IntencionCatalogo(id=i.id, nombre=i.nombre, productos=conteo.get(i.id, 0)) for i in intenciones]
 
 
 def obtener_ficha(db: Session, producto_id: int) -> FichaProducto:
@@ -109,11 +153,13 @@ def obtener_ficha(db: Session, producto_id: int) -> FichaProducto:
         medidas=producto.medidas,
         peso_g=producto.peso_g,
         tiene_variantes=not (len(variantes) == 1 and variantes[0].nombre == VARIANTE_UNICA),
+        aviso_pieza_natural=aviso_pieza_natural() if producto.es_pieza_natural else None,  # HU006
         variantes=[
             VariantePublica(id=v.id, nombre=v.nombre, precio=v.precio_efectivo,
                             disponible=disponibles.get(v.id, 0) > 0,
                             ultima_unidad=disponibles.get(v.id, 0) == 1,  # HU003 Esc.4, sin exponer la cantidad
-                            propiedades=v.propiedades)
+                            propiedades=v.propiedades,
+                            intenciones=[i.nombre for i in activas(v.intenciones)])  # HU005
             for v in variantes
         ],
         imagenes=[

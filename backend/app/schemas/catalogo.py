@@ -33,6 +33,8 @@ class VariantePublica(BaseModel):
     disponible: bool
     ultima_unidad: bool  # HU003 Esc.4: queda exactamente 1 unidad libre ("¡Última unidad!"); nunca la cantidad
     propiedades: str | None
+    # HU005: intenciones de la piedra (solo activas, por nombre, texto plano). Lista vacía si no tiene.
+    intenciones: list[str] = Field(default_factory=list, examples=[["Calma y paz interior", "Protección"]])
 
 
 class ImagenPublica(BaseModel):
@@ -49,5 +51,8 @@ class FichaProducto(ProductoCatalogo):
     medidas: str | None
     peso_g: Decimal | None = Field(examples=["12.50"])
     tiene_variantes: bool
+    # HU006: texto del aviso de variación natural si es_pieza_natural; null si no. Mostrarlo como texto plano.
+    aviso_pieza_natural: str | None = Field(examples=["Cada pieza es natural y única: la que recibas puede variar "
+                                                      "en forma, tamaño y tono respecto de la fotografía."])
     variantes: list[VariantePublica]
     imagenes: list[ImagenPublica]

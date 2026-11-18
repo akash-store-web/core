@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_admin
-from app.schemas.producto import ImagenOut
+from app.schemas.producto import EscalaIn, ImagenOut
 from app.services import imagenes as servicio
 
 router = APIRouter(
@@ -23,6 +23,13 @@ async def subir_imagen(producto_id: int, foto: UploadFile = File(...), db: Sessi
 @router.patch("/{imagen_id}/principal", response_model=list[ImagenOut])
 def marcar_principal(producto_id: int, imagen_id: int, db: Session = Depends(get_db)):
     return servicio.marcar_principal(db, producto_id, imagen_id)
+
+
+@router.patch("/{imagen_id}/escala", response_model=list[ImagenOut])
+def marcar_escala(producto_id: int, imagen_id: int, datos: EscalaIn, db: Session = Depends(get_db)):
+    """HU004: foto de referencia de escala (máximo una por producto). Marcar una nueva desmarca la anterior;
+    `false` la desmarca. 404 si la imagen no pertenece al producto."""
+    return servicio.marcar_escala(db, producto_id, imagen_id, datos.es_referencia_escala)
 
 
 @router.delete("/{imagen_id}", status_code=status.HTTP_204_NO_CONTENT)

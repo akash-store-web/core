@@ -5,7 +5,10 @@ from decimal import Decimal
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.variante import Variante
-from app.schemas.carrito import CarritoIn, CarritoOut, ItemCarritoOut
+from app.schemas.carrito import MAX_POR_LINEA, AvisoPiezaNatural, CarritoIn, CarritoOut, ItemCarritoOut
+from app.services.productos import aviso_pieza_natural
+
+MENSAJE_LIMITE = f"Máximo {MAX_POR_LINEA} unidades por producto; para más, escríbenos por WhatsApp"
 
 
 def unidades_reservadas(db: Session, variante_ids: list[int]) -> dict[int, int]:
@@ -25,8 +28,11 @@ def disponibles_para_venta(db: Session, variantes: list[Variante]) -> dict[int, 
 def validar_carrito(db: Session, carrito: CarritoIn) -> CarritoOut:
     # Si la misma variante llega dos veces, se suman las cantidades.
     pedidas = Counter()
+    vistos: dict[int, Decimal] = {}  # HU009 E9: el primer precio_visto que llegue por variante
     for item in carrito.items:
         pedidas[item.variante_id] += item.cantidad
+        if item.precio_visto is not None:
+            vistos.setdefault(item.variante_id, item.precio_visto)
 
     variantes = {
         v.id: v
@@ -55,18 +61,31 @@ def validar_carrito(db: Session, carrito: CarritoIn) -> CarritoOut:
 
         maximo = disponibles[variante_id]
         precio = variante.precio_efectivo
+        visto = vistos.get(variante_id)
+        precio_cambio = visto is not None and visto != precio
         if maximo == 0:
             estado, mensaje = "agotado", "Agotado; quítalo del pedido"
+        elif cantidad > MAX_POR_LINEA:
+            # HU009 E6: la misma variante en varias líneas suma más de 10 (cada línea ya viene limitada a 10).
+            maximo = min(MAX_POR_LINEA, maximo)
+            estado, mensaje = "limite", MENSAJE_LIMITE
         elif cantidad > maximo:
             estado, mensaje = "stock_insuficiente", f"Solo quedan {maximo}; ajusta la cantidad"
         else:
             estado, mensaje = "ok", None
+        if precio_cambio and mensaje is None:
+            mensaje = f"El precio cambió de S/ {visto:.2f} a S/ {precio:.2f}"
         items.append(ItemCarritoOut(
             variante_id=variante_id, producto_id=variante.producto_id, producto=variante.producto.nombre,
             variante=variante.nombre, es_pieza_natural=variante.producto.es_pieza_natural, cantidad=cantidad,
             estado=estado, cantidad_maxima=maximo, precio_unitario=precio,
             subtotal=(precio * min(cantidad, maximo)).quantize(Decimal("0.01")), mensaje=mensaje,
+            precio_anterior=visto.quantize(Decimal("0.01")) if precio_cambio else None, precio_cambio=precio_cambio,
         ))
 
     total = sum((i.subtotal for i in items), Decimal("0.00"))
-    return CarritoOut(valido=all(i.estado == "ok" for i in items), items=items, total=total)
+    # HU006 Esc.2 / E6: un solo aviso aunque haya varias piezas naturales, con los productos sin repetir.
+    naturales = list(dict.fromkeys(i.producto for i in items if i.es_pieza_natural))
+    aviso = AvisoPiezaNatural(texto=aviso_pieza_natural(), productos=naturales) if naturales else None
+    return CarritoOut(valido=all(i.estado == "ok" for i in items), items=items, total=total,
+                      aviso_pieza_natural=aviso)

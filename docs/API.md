@@ -13,6 +13,26 @@ En el frontend la URL base viene de `VITE_API_URL`. Render gratuito "duerme" tra
 
 ---
 
+## Cambios para el frontend (Sprint 3, catálogo)
+
+Backend de AKASH-180, 168, 175, 164, 172, 190 y el 409 de HU034 E8. Todo es **aditivo** (campos y rutas nuevas) salvo donde se indica ⚠️.
+
+| # | Historia · subtarea | Pantalla | Cambio en la API | Qué hacer en el frontend |
+|---|---|---|---|---|
+| 1 | HU008 · AKASH-181 | Panel: formulario de la piedra | `GET /admin/intenciones` (selector, activas e inactivas) y `PUT /admin/variantes/{vid}/intenciones` con `{"intencion_ids": [1, 4]}` (reemplaza; 0 a 5). `VarianteOut` trae `intenciones: [{id, nombre}]`. | Selector múltiple con máximo 5 por piedra; marcar lo que trae `intenciones`; mostrar `detail` del `422`. Las inactivas no se ofrecen. |
+| 2 | HU008 · AKASH-182 | Catálogo: filtro por intención | `GET /catalogo?intencion_id=4` (combinable con todo). `GET /catalogo/intenciones` → `[{id, nombre, productos}]`. | Pintar el filtro con `/catalogo/intenciones`. Si una búsqueda da `[]`, sugerir las intenciones con `productos > 0` (E7). |
+| 3 | HU005 · AKASH-169 | Ficha | Cada `variantes[]` trae `intenciones: ["Calma y paz interior", "Protección"]` (texto plano; `[]` si no tiene). | Mostrar las intenciones de la piedra elegida; si la lista está vacía, no mostrar la sección. |
+| 4 | HU007 · AKASH-176 | Catálogo: filtro por precio | `precio_min` / `precio_max` (0 a 9999.99, opcionales). `422` si son inválidos o si mín > máx ("El precio mínimo no puede ser mayor que el máximo"). ⚠️ `categoria_id` inexistente ya **no** devuelve `[]`: se ignora y sale el catálogo completo. | Validar en el formulario (no negativos, mín ≤ máx) y mostrar `detail` del `422`. |
+| 5 | HU004 · AKASH-165 / 166 | Panel: fotos · Ficha | `PATCH /admin/productos/{id}/imagenes/{iid}/escala` con `{"es_referencia_escala": true}` (la anterior se desmarca sola; `false` la quita). Responde la lista de imágenes. | Botón "Foto de escala" en cada foto; en la ficha, destacar la imagen con `es_referencia_escala: true` (ya venía). |
+| 6 | HU006 · AKASH-173 | Ficha · Carrito | Ficha: `aviso_pieza_natural` (texto o `null`). Carrito: `aviso_pieza_natural: {"texto", "productos": [...]}` o `null`, una sola vez. | Mostrar el texto **como texto plano** (no HTML). En el resumen, un solo aviso con la lista de productos. |
+| 7 | HU009 · AKASH-188 | Carrito | ⚠️ `cantidad` por línea ahora **1 a 10** (`422` desde 11). Si la misma variante suma más de 10 en varias líneas → `estado: "limite"`, `cantidad_maxima = min(10, disponible)`. | Tope 10 en el selector de cantidad; tratar `limite` como `stock_insuficiente` (ofrecer `cantidad_maxima`) y mostrar `mensaje` (invita a WhatsApp). |
+| 8 | HU009 · AKASH-189 | Carrito | Cada ítem acepta `precio_visto` (el precio guardado al agregarlo). Si cambió: `precio_cambio: true`, `precio_anterior: "45.00"` y `mensaje`; **no bloquea**. | Enviar `precio_visto`; si `precio_cambio`, mostrar `mensaje` y actualizar el precio guardado con `precio_unitario`. Calcular siempre con `precio_unitario`. |
+| 9 | HU034 E8 | Panel: ajuste de stock | El `409` dice el stock actual: "Las existencias no pueden quedar en negativo: hay 3 unidades". | Nada: ya se muestra `detail`. |
+
+**Base de datos:** requiere las tablas `intencion` y `variante_intencion` (`docs/sql/2026-11_sprint3_intenciones.sql`), ya ejecutado y verificado en Supabase el 12/11/2026. Nueva variable opcional en Render: `AVISO_PIEZA_NATURAL` (si no se define, se usa el texto por defecto).
+
+---
+
 ## Cambios para el frontend (T-07 y escenarios de error del Sprint 2, nov-2026)
 
 Lo que Jeremies (y Litzy en el carrito) deben ajustar. Nada de esto rompe una llamada que hoy funciona, salvo donde se indica ⚠️.
@@ -190,11 +210,13 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 ### `GET /admin/productos/{id}/variantes`
 ```json
 [{"id": 1, "producto_id": 1, "nombre": "Amatista", "precio": "45.00", "precio_efectivo": "45.00",
-  "existencias": 3, "agotado": false, "propiedades": "Se le atribuye calma.", "activa": true},
+  "existencias": 3, "agotado": false, "propiedades": "Se le atribuye calma.", "activa": true,
+  "intenciones": [{"id": 4, "nombre": "Calma y paz interior"}, {"id": 1, "nombre": "Protección"}]},
  {"id": 2, "producto_id": 1, "nombre": "Turmalina negra", "precio": null, "precio_efectivo": "40.00",
-  "existencias": 2, "agotado": false, "propiedades": null, "activa": false}]
+  "existencias": 2, "agotado": false, "propiedades": null, "activa": false, "intenciones": []}]
 ```
 `precio: null` = hereda el `precio_base`; muestren siempre `precio_efectivo`.
+`intenciones` (HU008): las asignadas a la piedra, **solo activas**, por nombre. Se cambian con la ruta de abajo.
 `activa: false` = variante **retirada**: tenía historial y se "eliminó". No se vende (el carrito la da como `no_disponible`), no se compra (`422` en compras) y no cuenta en `num_variantes` ni en `existencias_total` del listado; su historial se conserva.
 
 ### `POST /admin/productos/{id}/variantes` → `201` · `PUT /admin/productos/{id}/variantes/{vid}`
@@ -220,6 +242,25 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 ```
 - `409` si es la última variante **activa** del producto.
 
+### Intenciones de la piedra (HU008)
+Van por **variante**: cada piedra tiene de 0 a 5 intenciones (lista confirmada por la propietaria; la carga Diego en la base).
+
+`GET /admin/intenciones` → selector del formulario, activas e inactivas, por nombre:
+```json
+[{"id": 2, "nombre": "Abundancia y prosperidad", "activa": true}, {"id": 1, "nombre": "Protección", "activa": true}]
+```
+`PUT /admin/variantes/{vid}/intenciones` → **reemplaza** el conjunto y responde lo asignado:
+```json
+// petición
+{"intencion_ids": [1, 4, 4]}
+// 200 (las repetidas se guardan una vez)
+[{"id": 4, "nombre": "Calma y paz interior"}, {"id": 1, "nombre": "Protección"}]
+```
+- `[]` quita todas. Si la piedra tenía una intención ya desactivada, al guardar se quita.
+- `422` "Máximo 5 intenciones por piedra" si llegan más de 5 **distintas** (E6).
+- `422` "La intención 99 no existe" / "La intención «Buena suerte» (id 11) está desactivada" (E4). No se guarda nada.
+- `404` si la variante no existe.
+
 ---
 
 ## Panel: stock por movimientos 🔒 (HU034)
@@ -242,7 +283,8 @@ La imagen genérica **no cuenta** como foto: con `PUBLICAR_EXIGE_FOTO=true` hace
 {"id": 8, "variante_id": 2, "variante": "Turmalina negra", "fecha": "2026-10-16T15:20:00Z", "tipo": "ajuste",
  "cantidad": -1, "saldo": 1, "motivo": "Se rompió al empacar", "compra_id": null, "pedido_numero": null,
  "usuario": "duena@ejemplo.com"}
-// 409 {"detail": "Las existencias no pueden quedar en negativo"} · 422 sin motivo, cantidad 0, decimal o fuera de ±10000
+// 409 {"detail": "Las existencias no pueden quedar en negativo: hay 3 unidades"} (HU034 E8: el stock actual)
+// 422 sin motivo, cantidad 0, decimal o fuera de ±10000
 ```
 Los movimientos **no se editan ni se borran**: `PUT`/`PATCH`/`DELETE` sobre `/ajustes` o `/movimientos` responden `405`. Para corregir un error se registra otro ajuste.
 
@@ -325,6 +367,10 @@ await fetch(`${API}/admin/productos/${id}/imagenes`, {
 Errores: `409` ya tiene 5 · `413` > 5 MB · `415` no es JPG/PNG/WEBP.
 
 ### `PATCH /admin/productos/{id}/imagenes/{iid}/principal` → lista de imágenes del producto
+### `PATCH /admin/productos/{id}/imagenes/{iid}/escala` → lista de imágenes del producto (HU004)
+`{"es_referencia_escala": true}` marca la foto que muestra el tamaño real (con una mano o una moneda).
+**Máximo una por producto**: al marcar una nueva, la anterior se desmarca sola (E3). `false` la desmarca.
+`404` si la imagen no pertenece a ese producto (E4). Si se elimina la foto de escala, el producto queda sin ninguna (E5).
 ### `DELETE /admin/productos/{id}/imagenes/{iid}` → `204` (si era la principal, pasa a serlo la siguiente)
 `409` si es la **única foto** de un producto **publicado** y `PUBLICAR_EXIGE_FOTO=true` (sube otra antes o despublícalo). Con la regla apagada, o con el producto despublicado, se permite.
 
@@ -491,8 +537,20 @@ Sin login. Registra el pedido en estado `pendiente` con número correlativo (`P-
 
 Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas.
 
-### `GET /catalogo?categoria_id=&q=&solo_disponibles=&limite=&desde=` — tarjetas
+### `GET /catalogo?categoria_id=&q=&solo_disponibles=&intencion_id=&precio_min=&precio_max=&limite=&desde=` — tarjetas
 `solo_disponibles=true` oculta los productos agotados: es el interruptor «Ver solo disponibles» (HU029).
+
+- **`categoria_id`** inexistente se **ignora** (HU007 E7): sale el catálogo completo, sin error.
+- **`intencion_id`** (HU008): productos con al menos una piedra activa con esa intención. Intención inexistente o
+  desactivada → `[]` (no es error). Los productos sin intenciones solo salen en el catálogo general (E8).
+- **`precio_min` / `precio_max`** (HU007): de 0 a 9999.99 con 2 decimales, opcionales (uno solo deja el otro
+  abierto; límites incluidos). Entra el producto si **al menos una** piedra activa tiene su precio en el rango
+  (E8: piedras de 40 y 45 con máximo 42 → aparece). Negativo, > 9999.99, texto o 3 decimales → `422`;
+  mínimo > máximo → `422` `"El precio mínimo no puede ser mayor que el máximo"`.
+- **Combinados**, la intención, el rango de precio y `solo_disponibles` se cumplen en la **misma piedra**
+  (p. ej. Protección + máx. 42 exige una piedra de Protección que cueste ≤ 42; con `solo_disponibles`, que además
+  tenga stock). Ojo: el `precio` de la tarjeta sigue siendo el menor entre las piedras **disponibles**; sin
+  `solo_disponibles`, un producto puede entrar por una piedra agotada en rango y mostrar un precio fuera de él.
 
 - **Orden**: primero los disponibles y al final los agotados (HU029); dentro de cada grupo, por el orden de la
   categoría y luego por nombre.
@@ -514,22 +572,33 @@ Solo aparecen productos **publicados**. Nunca se exponen las existencias exactas
 ### `GET /catalogo/categorias`
 Solo las categorías con algún producto publicado, en orden: `[{"id": 4, "nombre": "Anillos"}]`.
 
+### `GET /catalogo/intenciones` (HU008)
+Intenciones **activas**, por nombre, con cuántos productos salen al filtrar por cada una (sin otros filtros):
+`[{"id": 2, "nombre": "Abundancia y prosperidad", "productos": 3}, {"id": 6, "nombre": "Comunicación", "productos": 0}]`.
+Sirve para pintar el filtro y para sugerir intenciones con `productos > 0` cuando una búsqueda no da resultados (E7).
+
 ### `GET /catalogo/{id}` — ficha
 La tarjeta más:
 ```json
 {"descripcion": "...", "material": "Plata 925", "medidas": "Piedra de 8 × 10 mm", "peso_g": null,
  "tiene_variantes": true,
+ "aviso_pieza_natural": "Cada pieza es natural y única: la que recibas puede variar en forma, tamaño y tono respecto de la fotografía.",
  "variantes": [{"id": 1, "nombre": "Amatista", "precio": "45.00", "disponible": true, "ultima_unidad": true,
-                "propiedades": "Se le atribuye calma."},
+                "propiedades": "Se le atribuye calma.", "intenciones": ["Calma y paz interior", "Protección"]},
                {"id": 2, "nombre": "Turmalina negra", "precio": "40.00", "disponible": false, "ultima_unidad": false,
-                "propiedades": null}],
+                "propiedades": null, "intenciones": []}],
  "imagenes": [{"url": "https://...jpg", "es_principal": true, "es_referencia_escala": false}]}
 ```
+- `intenciones` (HU005): de cada piedra, solo las activas, por nombre, texto plano. `[]` si no tiene (no mostrar la
+  sección). Si la propietaria desactiva una intención, deja de salir (E5).
+- `aviso_pieza_natural` (HU006): texto del aviso si `es_pieza_natural`; `null` si no. Mostrarlo como **texto plano**.
+  Lo define la variable `AVISO_PIEZA_NATURAL` del servidor (máx. 300; si falta o es inválida, el texto por defecto).
+- `es_referencia_escala: true` (HU004): la foto que muestra el tamaño real; como mucho una por producto.
 - `tiene_variantes: false` → **no mostrar** el selector (producto con variante "Única").
 - Variante con `disponible: false` → opción deshabilitada; las demás siguen activas (HU027).
 - `ultima_unidad: true` → mostrar **"¡Última unidad!"** (HU003 Esc. 4). Nunca se expone la cantidad exacta.
 - Al elegir variante, mostrar su `precio` y sus `propiedades`.
-- `es_pieza_natural: true` → mostrar el aviso de variación natural (HU006).
+- `es_pieza_natural: true` → mostrar `aviso_pieza_natural` (HU006).
 - `404` si no existe o está despublicado.
 
 ---
@@ -540,17 +609,20 @@ El carrito vive en el navegador (por ejemplo, en `localStorage`). Antes de mostr
 
 ### `POST /carrito/validar`
 ```json
-// petición: variante_id de la ficha (GET /catalogo/{id} → variantes[].id)
-{"items": [{"variante_id": 1, "cantidad": 2}, {"variante_id": 2, "cantidad": 5}]}
+// petición: variante_id de la ficha (GET /catalogo/{id} → variantes[].id); precio_visto es opcional
+{"items": [{"variante_id": 1, "cantidad": 2, "precio_visto": "42.00"}, {"variante_id": 2, "cantidad": 5}]}
 // 200 — siempre 200; el resultado está en "valido" y en el estado de cada ítem
 {"valido": false, "total": "170.00",
  "items": [
   {"variante_id": 1, "producto_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
    "es_pieza_natural": true, "cantidad": 2, "estado": "ok", "cantidad_maxima": 3,
-   "precio_unitario": "45.00", "subtotal": "90.00", "mensaje": null},
+   "precio_unitario": "45.00", "subtotal": "90.00", "mensaje": "El precio cambió de S/ 42.00 a S/ 45.00",
+   "precio_anterior": "42.00", "precio_cambio": true},
   {"variante_id": 2, "producto_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Turmalina negra",
    "es_pieza_natural": true, "cantidad": 5, "estado": "stock_insuficiente", "cantidad_maxima": 2,
-   "precio_unitario": "40.00", "subtotal": "80.00", "mensaje": "Solo quedan 2; ajusta la cantidad"}]}
+   "precio_unitario": "40.00", "subtotal": "80.00", "mensaje": "Solo quedan 2; ajusta la cantidad",
+   "precio_anterior": null, "precio_cambio": false}],
+ "aviso_pieza_natural": {"texto": "Cada pieza es natural y única: ...", "productos": ["Anillo de plata 925 con piedra"]}}
 ```
 
 | `estado` | Qué hacer en la pantalla |
@@ -559,12 +631,19 @@ El carrito vive en el navegador (por ejemplo, en `localStorage`). Antes de mostr
 | `stock_insuficiente` | Mostrar `mensaje` y ofrecer bajar la cantidad a `cantidad_maxima` |
 | `agotado` | Mostrar `mensaje` ("Agotado; quítalo del pedido") |
 | `no_disponible` | El producto se despublicó, ya no existe o la variante se retiró (`activa: false`): quitarlo del carrito |
+| `limite` | La misma variante suma más de 10 unidades (HU009 E6): mostrar `mensaje` ("Máximo 10 unidades por producto; para más, escríbenos por WhatsApp") y ofrecer `cantidad_maxima` (= mín(10, disponible)) |
 
 - Solo con `valido: true` se habilita el botón para continuar al checkout.
 - `subtotal` se calcula con lo que sí se puede comprar; `total` no incluye el envío (ver `/envio/costo`).
-- `es_pieza_natural: true` → repetir el aviso de variación natural en el resumen (HU009 #5).
+- `aviso_pieza_natural` (HU006): si algún producto es pieza natural, el aviso **una sola vez** con los productos
+  (sin repetir); `null` si ninguno. `es_pieza_natural` sigue viniendo por ítem.
 - Usen siempre `precio_unitario` de esta respuesta: si la propietaria cambió un precio, aquí ya viene el vigente.
-- Si la misma variante llega dos veces, se suman las cantidades. `cantidad` va de 1 a 99.
+- **Precio cambiado (HU009 E9)**: envíen en cada ítem `precio_visto` (el precio que la clienta vio al agregarlo,
+  0 a 9999.99). Si difiere del vigente: `precio_cambio: true`, `precio_anterior` y `mensaje`
+  "El precio cambió de S/ 45.00 a S/ 50.00". **No bloquea**: el estado sigue `ok` si hay stock (si además hay un
+  problema de stock, `mensaje` es el del stock). Sin `precio_visto`: `precio_cambio: false`, `precio_anterior: null`.
+  El precio guardado en el navegador nunca se usa para calcular (E10).
+- Si la misma variante llega dos veces, se suman las cantidades. ⚠️ `cantidad` va de **1 a 10** por línea (`422` desde 11).
 
 ---
 

@@ -82,6 +82,20 @@ def marcar_principal(db: Session, producto_id: int, imagen_id: int) -> list[Imag
     return obtener_producto(db, producto_id).imagenes
 
 
+def marcar_escala(db: Session, producto_id: int, imagen_id: int, es_referencia_escala: bool) -> list[Imagen]:
+    """HU004: máximo una foto de escala por producto. Al marcar una, la anterior se desmarca sola (E3).
+    404 si la imagen no es de ese producto (E4). `false` la desmarca y el producto queda sin foto de escala."""
+    elegida = _obtener_imagen(db, producto_id, imagen_id)
+    for imagen in elegida.producto.imagenes:
+        if imagen.id == elegida.id:
+            imagen.es_referencia_escala = es_referencia_escala
+        elif es_referencia_escala:
+            imagen.es_referencia_escala = False
+    marcar_modificado(elegida.producto)
+    db.commit()
+    return obtener_producto(db, producto_id).imagenes
+
+
 def eliminar_imagen(db: Session, producto_id: int, imagen_id: int) -> None:
     imagen = _obtener_imagen(db, producto_id, imagen_id)
     producto = imagen.producto

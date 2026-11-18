@@ -61,6 +61,12 @@ class ImagenOut(BaseModel):
     es_referencia_escala: bool
 
 
+class EscalaIn(BaseModel):
+    """HU004: true marca la foto como referencia de escala (y desmarca la anterior); false la desmarca."""
+
+    es_referencia_escala: bool = Field(examples=[True])
+
+
 class ProductoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

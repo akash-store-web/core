@@ -41,8 +41,12 @@ def registrar_movimiento(db: Session, variante_id: int, cantidad: int, tipo: str
     )
     saldo = resultado.scalar_one_or_none()
     if saldo is None:
-        obtener_variante(db, variante_id)  # 404 si no existe
-        raise HTTPException(status.HTTP_409_CONFLICT, "Las existencias no pueden quedar en negativo")
+        variante = obtener_variante(db, variante_id)  # 404 si no existe
+        db.refresh(variante)  # HU034 E8: el stock de este momento, no el que quedó en la sesión
+        actual = variante.existencias
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"Las existencias no pueden quedar en negativo: hay {actual} "
+                            f"{'unidad' if actual == 1 else 'unidades'}")
 
     movimiento = MovimientoStock(variante_id=variante_id, tipo=tipo, cantidad=cantidad, saldo=saldo,
                                  motivo=motivo.strip() if motivo else None, compra_id=compra_id,

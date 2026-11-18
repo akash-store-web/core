@@ -21,6 +21,16 @@ def foto_principal(imagenes: list[Imagen]) -> tuple[str, bool]:
     return (principal.url, False) if principal else (config.FOTO_GENERICA_URL, True)
 
 
+AVISO_MAXIMO = 300
+
+
+def aviso_pieza_natural() -> str:
+    """HU006: texto del aviso de variación natural. Si la variable viene vacía, con solo espacios o pasa de
+    300 caracteres, se usa el texto por defecto (E4)."""
+    texto = (config.AVISO_PIEZA_NATURAL or "").strip()
+    return texto if 0 < len(texto) <= AVISO_MAXIMO else config.AVISO_PIEZA_NATURAL_DEFECTO
+
+
 def obtener_producto(db: Session, producto_id: int) -> Producto:
     producto = db.get(Producto, producto_id)
     if producto is None:

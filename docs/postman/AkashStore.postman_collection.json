@@ -436,6 +436,95 @@
           ]
         },
         {
+          "name": "Catálogo por intención y precio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo?intencion_id=1&precio_min=20&precio_max=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "intencion_id",
+                  "value": "1",
+                  "description": "ver /catalogo/intenciones"
+                },
+                {
+                  "key": "precio_min",
+                  "value": "20",
+                  "description": "0 a 9999.99 (opcional)"
+                },
+                {
+                  "key": "precio_max",
+                  "value": "50",
+                  "description": "0 a 9999.99 (opcional)"
+                }
+              ]
+            },
+            "description": "HU008 y HU007: entra el producto si UNA misma piedra activa tiene la intención y su precio en el rango. Intención inexistente o desactivada → []. min > max → 422.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precio mínimo mayor que el máximo (422)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo?precio_min=50&precio_max=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo"
+              ],
+              "query": [
+                {
+                  "key": "precio_min",
+                  "value": "50"
+                },
+                {
+                  "key": "precio_max",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Categorías del catálogo",
           "request": {
             "method": "GET",
@@ -468,6 +557,38 @@
           ]
         },
         {
+          "name": "Intenciones del catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/catalogo/intenciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "catalogo",
+                "intenciones"
+              ]
+            },
+            "description": "HU008: intenciones activas con `productos` (cuántos salen al filtrar por cada una).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Ficha de producto",
           "request": {
             "method": "GET",
@@ -482,7 +603,7 @@
                 "{{producto_id}}"
               ]
             },
-            "description": "`tiene_variantes:false` = no mostrar selector. 404 si está despublicado.",
+            "description": "`tiene_variantes:false` = no mostrar selector. Cada variante trae `intenciones` (HU005); `aviso_pieza_natural` es texto o null (HU006). 404 si está despublicado.",
             "auth": {
               "type": "noauth"
             }
@@ -528,10 +649,10 @@
                 "validar"
               ]
             },
-            "description": "Revisa cada ítem contra el stock real. Siempre 200; `valido: true` = se puede pasar al checkout. Estados por ítem: ok, stock_insuficiente, agotado, no_disponible.",
+            "description": "Revisa cada ítem contra el stock real. Siempre 200; `valido: true` = se puede pasar al checkout. Estados por ítem: ok, stock_insuficiente, agotado, no_disponible, limite (más de 10 de la misma variante). `cantidad` 1 a 10. `precio_visto` opcional: si difiere, `precio_cambio: true` (HU009 E9). `aviso_pieza_natural` una sola vez (HU006).",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 2\n    },\n    {\n      \"variante_id\": 1,\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "raw": "{\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 2,\n      \"precio_visto\": \"45.00\"\n    },\n    {\n      \"variante_id\": 1,\n      \"cantidad\": 1\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1189,7 +1310,7 @@
                 "ajustes"
               ]
             },
-            "description": "HU034: cantidad con signo (distinta de 0, hasta ±10,000) y motivo de 3 a 200 caracteres. 409 si quedaría negativo. ⚠️ Escribe en la base del entorno elegido.",
+            "description": "HU034: cantidad con signo (distinta de 0, hasta ±10,000) y motivo de 3 a 200 caracteres. 409 si quedaría negativo (el detail dice el stock actual). ⚠️ Escribe en la base del entorno elegido.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"cantidad\": -1,\n  \"motivo\": \"Se rompió al empacar (prueba QA)\"\n}",
@@ -1207,6 +1328,80 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Intenciones (selector)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/intenciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "intenciones"
+              ]
+            },
+            "description": "HU008: activas e inactivas, por nombre."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Asignar intenciones a la piedra",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/variantes/{{variante_id}}/intenciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "variantes",
+                "{{variante_id}}",
+                "intenciones"
+              ]
+            },
+            "description": "HU008: reemplaza el conjunto (0 a 5; repetidas cuentan una vez). 422 si son más de 5 o alguna no existe o está desactivada. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intencion_ids\": [\n    1,\n    4\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
                 ]
               }
             }
@@ -1363,6 +1558,53 @@
               ]
             },
             "description": "⚠️ Escribe en la base del entorno elegido."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar foto de escala",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}/escala",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "productos",
+                "{{producto_id}}",
+                "imagenes",
+                "{{imagen_id}}",
+                "escala"
+              ]
+            },
+            "description": "HU004: máximo una por producto; la nueva desmarca la anterior. `false` la desmarca. 404 si la imagen no es de ese producto. ⚠️ Escribe en la base del entorno elegido.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"es_referencia_escala\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "event": [
             {

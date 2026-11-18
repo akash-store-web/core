@@ -48,6 +48,18 @@ def crear_pedido(db: Session, numero: str, items: list[tuple[int, int, str]], es
     return pedido
 
 
+def crear_intenciones(engine, nombres: list[str], inactivas: tuple[str, ...] = ()) -> dict[str, int]:
+    """HU008: en Supabase las intenciones las carga el SQL de Diego; en las pruebas se crean aquí.
+    Devuelve {nombre: id}."""
+    from app.models.intencion import Intencion
+
+    with Session(engine) as db:
+        filas = [Intencion(nombre=n, activa=n not in inactivas) for n in nombres]
+        db.add_all(filas)
+        db.commit()
+        return {f.nombre: f.id for f in filas}
+
+
 def dar_stock(client, auth, variante_id: int, cantidad: int, motivo: str = "Stock de prueba") -> dict:
     """HU034: en las pruebas el stock entra (o sale) con un ajuste con motivo, nunca a mano."""
     respuesta = client.post(f"/admin/variantes/{variante_id}/ajustes",
