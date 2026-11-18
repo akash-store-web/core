@@ -33,6 +33,8 @@ class VariantePublica(BaseModel):
     disponible: bool
     ultima_unidad: bool  # HU003 Esc.4: queda exactamente 1 unidad libre ("¡Última unidad!"); nunca la cantidad
     propiedades: str | None
+    # HU005: intenciones de la piedra (solo activas, por nombre, texto plano). Lista vacía si no tiene.
+    intenciones: list[str] = Field(default_factory=list, examples=[["Calma y paz interior", "Protección"]])
 
 
 class ImagenPublica(BaseModel):

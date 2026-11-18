@@ -145,7 +145,8 @@ def obtener_ficha(db: Session, producto_id: int) -> FichaProducto:
             VariantePublica(id=v.id, nombre=v.nombre, precio=v.precio_efectivo,
                             disponible=disponibles.get(v.id, 0) > 0,
                             ultima_unidad=disponibles.get(v.id, 0) == 1,  # HU003 Esc.4, sin exponer la cantidad
-                            propiedades=v.propiedades)
+                            propiedades=v.propiedades,
+                            intenciones=[i.nombre for i in activas(v.intenciones)])  # HU005
             for v in variantes
         ],
         imagenes=[
