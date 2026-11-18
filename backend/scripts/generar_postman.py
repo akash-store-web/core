@@ -104,16 +104,30 @@ items = [
             query=[{"key": "categoria_id", "value": "2", "description": "2 = Pulseras"},
                    {"key": "q", "value": "cuarzo", "description": "búsqueda por nombre"},
                    {"key": "solo_disponibles", "value": "true", "description": "oculta los agotados (HU029)"}]),
+        req("Catálogo por intención y precio", "GET", "/catalogo", publico=True, eventos=codigo(200),
+            descripcion="HU008 y HU007: entra el producto si UNA misma piedra activa tiene la intención y su precio "
+                        "en el rango. Intención inexistente o desactivada → []. min > max → 422.",
+            query=[{"key": "intencion_id", "value": "1", "description": "ver /catalogo/intenciones"},
+                   {"key": "precio_min", "value": "20", "description": "0 a 9999.99 (opcional)"},
+                   {"key": "precio_max", "value": "50", "description": "0 a 9999.99 (opcional)"}]),
+        req("Precio mínimo mayor que el máximo (422)", "GET", "/catalogo", publico=True, eventos=codigo(422),
+            query=[{"key": "precio_min", "value": "50"}, {"key": "precio_max", "value": "20"}]),
         req("Categorías del catálogo", "GET", "/catalogo/categorias", publico=True, eventos=codigo(200)),
+        req("Intenciones del catálogo", "GET", "/catalogo/intenciones", publico=True, eventos=codigo(200),
+            descripcion="HU008: intenciones activas con `productos` (cuántos salen al filtrar por cada una)."),
         req("Ficha de producto", "GET", "/catalogo/{{producto_id}}",
-            descripcion="`tiene_variantes:false` = no mostrar selector. 404 si está despublicado.",
+            descripcion="`tiene_variantes:false` = no mostrar selector. Cada variante trae `intenciones` (HU005); "
+                        "`aviso_pieza_natural` es texto o null (HU006). 404 si está despublicado.",
             publico=True, eventos=codigo(200)),
     ], publico=True),
     carpeta("3. Carrito y envío (público)", "Para el carrito y el checkout, sin login.", [
         req("Validar carrito", "POST", "/carrito/validar",
-            {"items": [{"variante_id": "{{variante_id}}", "cantidad": 2}, {"variante_id": 1, "cantidad": 1}]},
+            {"items": [{"variante_id": "{{variante_id}}", "cantidad": 2, "precio_visto": "45.00"},
+                       {"variante_id": 1, "cantidad": 1}]},
             "Revisa cada ítem contra el stock real. Siempre 200; `valido: true` = se puede pasar al checkout. "
-            "Estados por ítem: ok, stock_insuficiente, agotado, no_disponible.",
+            "Estados por ítem: ok, stock_insuficiente, agotado, no_disponible, limite (más de 10 de la misma "
+            "variante). `cantidad` 1 a 10. `precio_visto` opcional: si difiere, `precio_cambio: true` (HU009 E9). "
+            "`aviso_pieza_natural` una sola vez (HU006).",
             test('pm.test("Responde 200", () => pm.response.to.have.status(200));',
                  'pm.test("Trae valido y total", () => { const d = pm.response.json(); pm.expect(d).to.have.property("valido"); pm.expect(d.total).to.be.a("string"); });'),
             publico=True),
@@ -166,7 +180,13 @@ items = [
         req("Ajuste de stock con motivo", "POST", "/admin/variantes/{{variante_id}}/ajustes",
             {"cantidad": -1, "motivo": "Se rompió al empacar (prueba QA)"},
             "HU034: cantidad con signo (distinta de 0, hasta ±10,000) y motivo de 3 a 200 caracteres. "
-            "409 si quedaría negativo. " + ESCRIBE, codigo(201)),
+            "409 si quedaría negativo (el detail dice el stock actual). " + ESCRIBE, codigo(201)),
+        req("Intenciones (selector)", "GET", "/admin/intenciones", eventos=codigo(200),
+            descripcion="HU008: activas e inactivas, por nombre."),
+        req("Asignar intenciones a la piedra", "PUT", "/admin/variantes/{{variante_id}}/intenciones",
+            {"intencion_ids": [1, 4]},
+            "HU008: reemplaza el conjunto (0 a 5; repetidas cuentan una vez). 422 si son más de 5 o alguna no "
+            "existe o está desactivada. " + ESCRIBE, codigo(200)),
         req("Historial de la variante", "GET", "/admin/variantes/{{variante_id}}/movimientos", eventos=codigo(200)),
         req("Historial del producto", "GET", "/admin/productos/{{producto_id}}/movimientos", eventos=codigo(200)),
         req("Eliminar variante", "DELETE", "/admin/productos/{{producto_id}}/variantes/{{variante_id}}",
@@ -180,6 +200,10 @@ items = [
             formdata=[{"key": "foto", "type": "file", "src": []}], eventos=guardar("imagen_id")),
         req("Marcar como principal", "PATCH", "/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}/principal",
             descripcion=ESCRIBE, eventos=codigo(200)),
+        req("Marcar foto de escala", "PATCH", "/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}/escala",
+            {"es_referencia_escala": True},
+            "HU004: máximo una por producto; la nueva desmarca la anterior. `false` la desmarca. 404 si la imagen "
+            "no es de ese producto. " + ESCRIBE, codigo(200)),
         req("Eliminar foto", "DELETE", "/admin/productos/{{producto_id}}/imagenes/{{imagen_id}}",
             descripcion="204. Si era la principal, pasa a serlo la siguiente. 409 si es la única foto de un producto "
                         "publicado y PUBLICAR_EXIGE_FOTO=true. " + ESCRIBE, eventos=codigo(204)),
