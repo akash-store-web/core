@@ -20,6 +20,11 @@ SUPABASE_BUCKET_COMPROBANTES = os.getenv("SUPABASE_BUCKET_COMPROBANTES", "compro
 BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 CORREO_REMITENTE = os.getenv("CORREO_REMITENTE", "")
 CORREO_REMITENTE_NOMBRE = os.getenv("CORREO_REMITENTE_NOMBRE", "Akash Store")
+# HU006: aviso de variación natural (ficha y carrito). Opcional; texto plano de hasta 300 caracteres.
+# Vacío, solo espacios o más largo → se usa el texto por defecto (E4). Diego lo confirma con la propietaria (AKASH-171).
+AVISO_PIEZA_NATURAL_DEFECTO = ("Cada pieza es natural y única: la que recibas puede variar en forma, tamaño y tono "
+                               "respecto de la fotografía.")
+AVISO_PIEZA_NATURAL = os.getenv("AVISO_PIEZA_NATURAL", "")
 # Imagen genérica para productos sin foto real: foto_principal nunca llega vacía al frontend.
 # No cuenta como foto para PUBLICAR_EXIGE_FOTO. Está subida en el bucket (placeholders/producto.webp).
 FOTO_GENERICA_URL = os.getenv("FOTO_GENERICA_URL") or (

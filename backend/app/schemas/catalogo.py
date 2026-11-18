@@ -51,5 +51,8 @@ class FichaProducto(ProductoCatalogo):
     medidas: str | None
     peso_g: Decimal | None = Field(examples=["12.50"])
     tiene_variantes: bool
+    # HU006: texto del aviso de variación natural si es_pieza_natural; null si no. Mostrarlo como texto plano.
+    aviso_pieza_natural: str | None = Field(examples=["Cada pieza es natural y única: la que recibas puede variar "
+                                                      "en forma, tamaño y tono respecto de la fotografía."])
     variantes: list[VariantePublica]
     imagenes: list[ImagenPublica]

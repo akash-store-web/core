@@ -18,7 +18,7 @@ from app.schemas.catalogo import (
 from app.schemas.intencion import IntencionCatalogo
 from app.services.carrito import disponibles_para_venta
 from app.services.intenciones import activas
-from app.services.productos import VARIANTE_UNICA, foto_principal
+from app.services.productos import VARIANTE_UNICA, aviso_pieza_natural, foto_principal
 
 log = logging.getLogger("akash.catalogo")
 
@@ -153,6 +153,7 @@ def obtener_ficha(db: Session, producto_id: int) -> FichaProducto:
         medidas=producto.medidas,
         peso_g=producto.peso_g,
         tiene_variantes=not (len(variantes) == 1 and variantes[0].nombre == VARIANTE_UNICA),
+        aviso_pieza_natural=aviso_pieza_natural() if producto.es_pieza_natural else None,  # HU006
         variantes=[
             VariantePublica(id=v.id, nombre=v.nombre, precio=v.precio_efectivo,
                             disponible=disponibles.get(v.id, 0) > 0,

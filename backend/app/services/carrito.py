@@ -5,7 +5,8 @@ from decimal import Decimal
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.variante import Variante
-from app.schemas.carrito import CarritoIn, CarritoOut, ItemCarritoOut
+from app.schemas.carrito import AvisoPiezaNatural, CarritoIn, CarritoOut, ItemCarritoOut
+from app.services.productos import aviso_pieza_natural
 
 
 def unidades_reservadas(db: Session, variante_ids: list[int]) -> dict[int, int]:
@@ -68,4 +69,8 @@ def validar_carrito(db: Session, carrito: CarritoIn) -> CarritoOut:
         ))
 
     total = sum((i.subtotal for i in items), Decimal("0.00"))
-    return CarritoOut(valido=all(i.estado == "ok" for i in items), items=items, total=total)
+    # HU006 Esc.2 / E6: un solo aviso aunque haya varias piezas naturales, con los productos sin repetir.
+    naturales = list(dict.fromkeys(i.producto for i in items if i.es_pieza_natural))
+    aviso = AvisoPiezaNatural(texto=aviso_pieza_natural(), productos=naturales) if naturales else None
+    return CarritoOut(valido=all(i.estado == "ok" for i in items), items=items, total=total,
+                      aviso_pieza_natural=aviso)

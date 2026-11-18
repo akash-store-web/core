@@ -34,7 +34,15 @@ class ItemCarritoOut(BaseModel):
     mensaje: str | None  # listo para mostrar si estado != "ok"
 
 
+class AvisoPiezaNatural(BaseModel):
+    """HU006: el aviso se muestra una sola vez en el resumen, con los productos a los que aplica."""
+
+    texto: str
+    productos: list[str] = Field(examples=[["Pulsera de cuarzo", "Anillo de plata 925 con piedra"]])
+
+
 class CarritoOut(BaseModel):
     valido: bool  # True = todos los ítems en estado "ok": se puede pasar al checkout
     items: list[ItemCarritoOut]
     total: Decimal = Field(examples=["95.00"])  # suma de subtotales (sin envío)
+    aviso_pieza_natural: AvisoPiezaNatural | None = None  # null si ningún producto es pieza natural
