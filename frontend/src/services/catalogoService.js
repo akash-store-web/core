@@ -53,7 +53,7 @@ const fichasMock = [
   },
   {
     // Sin fotos: el backend devuelve la imagen genérica (AKASH-74)
-    id: 3, nombre: 'Spray áurico', categoria_id: 1, categoria: 'Boxes y kits',
+    id: 3, nombre: 'Spray áurico', categoria_id: 6, categoria: 'Inciensos y limpieza energética',
     precio: '25.00', precio_desde: false, disponible: true, es_pieza_natural: false,
     foto_generica: true,
     descripcion: 'Spray con aceites esenciales para limpiar la energía de tus espacios.',
@@ -77,7 +77,7 @@ const fichasMock = [
   },
   {
     // La foto no carga → debe verse la imagen genérica
-    id: 5, nombre: 'Drusa de amatista', categoria_id: 5, categoria: 'Cuarzos en bruto',
+    id: 5, nombre: 'Drusa de amatista', categoria_id: 7, categoria: 'Decoración y amuletos',
     precio: '120.00', precio_desde: false, disponible: true, es_pieza_natural: true,
     foto_generica: false,
     descripcion: 'Drusa de amatista en bruto, ideal para tu altar o escritorio.',
@@ -88,14 +88,14 @@ const fichasMock = [
   },
   {
     // Sin precio: NUNCA se lista ni tiene ficha pública (HU016)
-    id: 6, nombre: 'Producto sin precio (no debe verse)', categoria_id: 7, categoria: 'Inciensos',
+    id: 6, nombre: 'Producto sin precio (no debe verse)', categoria_id: 6, categoria: 'Inciensos y limpieza energética',
     precio: '0.00', precio_desde: false, disponible: true, es_pieza_natural: false,
     foto_generica: true, descripcion: '', material: null, medidas: null, peso_g: null,
     tiene_variantes: false, variantes: [], imagenes: [],
   },
   {
     // Kit con aromas a elegir (origen de la HU028)
-    id: 7, nombre: 'Kit de inciensos naturales', categoria_id: 7, categoria: 'Inciensos',
+    id: 7, nombre: 'Kit de inciensos naturales', categoria_id: 6, categoria: 'Inciensos y limpieza energética',
     precio: '12.50', precio_desde: false, disponible: true, es_pieza_natural: false,
     foto_generica: false,
     descripcion: 'Caja de 20 varitas de incienso natural. Elige el aroma que prefieras dentro de los disponibles.',
@@ -122,6 +122,48 @@ const fichasMock = [
     ],
     imagenes: [foto(8, { es_principal: true })],
   },
+  {
+    // HU007: más categorías y precios para probar los filtros
+    id: 9, nombre: 'Collar de cuarzo cristal', categoria_id: 3, categoria: 'Collares y colgantes',
+    precio: '35.00', precio_desde: false, disponible: true, es_pieza_natural: true,
+    foto_generica: false,
+    descripcion: 'Colgante de punta de cuarzo cristal con cadena de plata 925.',
+    material: 'Plata 925 y cuarzo cristal', medidas: 'Cadena de 45 cm', peso_g: null,
+    tiene_variantes: false,
+    variantes: [{ id: 13, nombre: 'Única', precio: '35.00', disponible: true, propiedades: 'Se le atribuye claridad y energía.' }],
+    imagenes: [foto(9, { es_principal: true })],
+  },
+  {
+    id: 11, nombre: 'Pulsera de ojo de tigre', categoria_id: 2, categoria: 'Pulseras',
+    precio: '25.00', precio_desde: false, disponible: true, es_pieza_natural: true,
+    foto_generica: false,
+    descripcion: 'Pulsera elástica de cuentas de ojo de tigre de 8 mm.',
+    material: 'Ojo de tigre natural', medidas: 'Elástica, talla única', peso_g: null,
+    tiene_variantes: false,
+    variantes: [{ id: 15, nombre: 'Única', precio: '25.00', disponible: true, propiedades: 'Se le atribuye protección y confianza.' }],
+    imagenes: [foto(10, { es_principal: true })],
+  },
+  {
+    id: 10, nombre: 'Roll-on de lavanda', categoria_id: 5, categoria: 'Roll-on',
+    precio: '18.00', precio_desde: false, disponible: true, es_pieza_natural: false,
+    foto_generica: true,
+    descripcion: 'Aceite esencial de lavanda en roll-on de 10 ml.',
+    material: null, medidas: '10 ml', peso_g: null,
+    tiene_variantes: false,
+    variantes: [{ id: 14, nombre: 'Única', precio: '18.00', disponible: true, propiedades: null }],
+    imagenes: [],
+  },
+];
+
+// Las 7 categorías del proyecto, en su orden (informe de BD v1.1).
+const categoriasMock = [
+  { id: 1, nombre: 'Boxes y kits' },
+  { id: 2, nombre: 'Pulseras' },
+  { id: 3, nombre: 'Collares y colgantes' },
+  { id: 4, nombre: 'Anillos' },
+  { id: 5, nombre: 'Roll-on' },
+  { id: 6, nombre: 'Inciensos y limpieza energética' },
+  { id: 7, nombre: 'Decoración y amuletos' },
 ];
 
 // La ficha simulada se arma igual que la del backend (foto_principal incluida).
@@ -233,6 +275,18 @@ export async function listarCatalogo({ signal } = {}) {
     return normalizarLista(fichasMock.map(aTarjeta));
   }
   return normalizarLista(await pedirPublico('/catalogo', { signal }));
+}
+
+// Categorías con algún producto publicado, en su orden (HU007).
+export async function listarCategorias({ signal } = {}) {
+  if (USE_MOCK) {
+    await simularRed();
+    const usadas = new Set(fichasMock.filter((f) => esListable(f)).map((f) => f.categoria_id));
+    return categoriasMock.filter((c) => usadas.has(c.id));
+  }
+  const data = await pedirPublico('/catalogo/categorias', { signal });
+  if (!Array.isArray(data)) throw new ApiError('Respuesta inesperada de categorías.', 0);
+  return data.filter((c) => Number.isInteger(c?.id) && typeof c.nombre === 'string' && c.nombre.trim() !== '');
 }
 
 // Ficha pública de un producto (HU028).
