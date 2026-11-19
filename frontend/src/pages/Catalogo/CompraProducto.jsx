@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { agregarAlCarrito } from '../../services/carritoService.js';
 import { soles } from '../../utils/formato.js';
+import BotonWhatsApp from './BotonWhatsApp.jsx';
 
 // ¿Qué se elige en este producto? El backend no lo indica, así que se deduce de la
 // categoría. Si algún día la API trae un campo "tipo_variante", basta con usarlo aquí.
@@ -202,6 +203,14 @@ function CompraProducto({ ficha }) {
       >
         {textoBoton}
       </button>
+
+      <BotonWhatsApp
+        producto={ficha.nombre}
+        idProducto={ficha.id}
+        variante={conSelector && elegida ? elegida.nombre : null}
+        sinElegir={conSelector && !elegida}
+        agotado={agotado}
+      />
 
       {aviso && (
         <p

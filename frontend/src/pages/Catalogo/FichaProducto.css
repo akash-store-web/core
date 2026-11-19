@@ -514,3 +514,34 @@ a.Catalogo__boton {
     font-size: 26px;
   }
 }
+
+/* Botón «Consultar por WhatsApp» de la ficha (HU012) */
+.Compra__whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 2px solid var(--color-marron);
+  border-radius: 999px;
+  background-color: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.Compra__whatsapp:hover {
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.Compra__whatsapp:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 3px;
+}
