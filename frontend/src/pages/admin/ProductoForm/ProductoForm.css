@@ -363,3 +363,22 @@
   font-size: 14px;
   line-height: 1.4;
 }
+
+/* Foto de escala (HU004) */
+.FotoEscala {
+  position: absolute;
+  top: 32px;
+  left: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--color-marron);
+  border-radius: 999px;
+  background-color: var(--color-blanco);
+  color: var(--color-marron);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.FotoBotones button[aria-pressed='true'] {
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}

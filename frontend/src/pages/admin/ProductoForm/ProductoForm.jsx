@@ -9,6 +9,7 @@ import {
   eliminarImagen,
   listarCategorias,
   listarVariantes,
+  marcarImagenEscala,
   marcarImagenPrincipal,
   obtenerProducto,
   subirImagen,
@@ -185,6 +186,7 @@ function ProductoForm() {
   const [errorCarga, setErrorCarga] = useState('');
   const [fotosQuitadas, setFotosQuitadas] = useState([]); // ids de imágenes ya guardadas que se borrarán al guardar
   const principalIdRef = useRef(null); // imagen que el backend tiene como principal
+  const escalaIdRef = useRef(null); // imagen que el backend tiene como foto de escala (HU004)
   const [unica, setUnica] = useState(null); // variante «Única» original, si el producto no tiene variantes
   const [conVariantesInicial, setConVariantesInicial] = useState(false);
 
@@ -242,7 +244,8 @@ function ProductoForm() {
           (a, b) => Number(b.es_principal) - Number(a.es_principal) || a.orden - b.orden,
         );
         principalIdRef.current = ordenadas.find((img) => img.es_principal)?.id ?? null;
-        setFotos(ordenadas.map((img) => ({ id: nuevoId(), imagenId: img.id, url: img.url, file: null })));
+        escalaIdRef.current = ordenadas.find((img) => img.es_referencia_escala)?.id ?? null;
+        setFotos(ordenadas.map((img) => ({ id: nuevoId(), imagenId: img.id, url: img.url, file: null, esEscala: img.es_referencia_escala === true })));
       })
       .catch((err) => {
         if (activo) setErrorCarga(err.message);
@@ -361,6 +364,14 @@ function ProductoForm() {
     });
   }
 
+  /* ---------- Foto de escala (HU004) ---------- */
+
+  // Como mucho una foto de escala por producto: marcar otra desmarca la anterior (E3).
+  // Se guarda al pulsar «Guardar cambios», igual que la principal.
+  function alternarEscala(fotoId) {
+    setFotos((prev) => prev.map((f) => ({ ...f, esEscala: f.id === fotoId ? !f.esEscala : false })));
+  }
+
   /* ---------- Guardar ---------- */
 
   function aplicarErroresServidor(detalle) {
@@ -431,6 +442,19 @@ function ProductoForm() {
       URL.revokeObjectURL(foto.url);
       lista[i] = { ...foto, imagenId: subida.id, url: subida.url, file: null };
       setFotos((prev) => prev.map((x) => (x.id === foto.id ? lista[i] : x)));
+    }
+
+    // Foto de escala (HU004): solo se llama al servidor si cambió
+    const escalaDeseada = lista.find((f) => f.esEscala)?.imagenId ?? null;
+    if (escalaDeseada && escalaDeseada !== escalaIdRef.current) {
+      await marcarImagenEscala(Number(id), escalaDeseada, true);
+      escalaIdRef.current = escalaDeseada;
+    } else if (!escalaDeseada && escalaIdRef.current) {
+      // Si la foto de escala se quitó, el servidor ya la borró (E5); si sigue, se desmarca
+      if (lista.some((f) => f.imagenId === escalaIdRef.current)) {
+        await marcarImagenEscala(Number(id), escalaIdRef.current, false);
+      }
+      escalaIdRef.current = null;
     }
 
     const deseada = lista[0]?.imagenId;
@@ -690,10 +714,20 @@ function ProductoForm() {
                   <img src={foto.url} alt={`Foto ${indice + 1}`} />
                   {indice === 0 && <span className="FotoPrincipal">Principal</span>}
                   {foto.file && esEdicion && <span className="FotoNueva">Nueva</span>}
+                  {foto.esEscala && <span className="FotoEscala">Foto con mano (escala)</span>}
                   <div className="FotoBotones">
                     {indice !== 0 && (
                       <button type="button" onClick={() => hacerPrincipal(foto.id)}>
                         Hacer principal
+                      </button>
+                    )}
+                    {esEdicion && (
+                      <button
+                        type="button"
+                        onClick={() => alternarEscala(foto.id)}
+                        aria-pressed={foto.esEscala === true}
+                      >
+                        {foto.esEscala ? 'Quitar foto de escala' : 'Foto de escala'}
                       </button>
                     )}
                     <button type="button" onClick={() => quitarFoto(foto.id)}>Quitar</button>
