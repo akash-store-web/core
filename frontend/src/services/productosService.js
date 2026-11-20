@@ -277,7 +277,7 @@ const imagenesMock = (p) =>
     url: f.url,
     orden: i + 1,
     es_principal: i === 0,
-    es_referencia_escala: false,
+    es_referencia_escala: f.id === p.fotoEscalaId,
   }));
 
 // Datos del producto + sus fotos (GET /admin/productos/{id}).
@@ -373,6 +373,21 @@ export async function marcarImagenPrincipal(productoId, imagenId) {
   }
   return apiFetch(`/admin/productos/${productoId}/imagenes/${imagenId}/principal`, {
     method: 'PATCH',
+  });
+}
+
+// HU004: marca (true) o desmarca (false) la foto de referencia de escala. Marcar una desmarca la anterior.
+export async function marcarImagenEscala(productoId, imagenId, esReferenciaEscala) {
+  if (USE_MOCK) {
+    await esperar(200);
+    const p = buscarMock(productoId);
+    if (esReferenciaEscala) p.fotoEscalaId = imagenId;
+    else if (p.fotoEscalaId === imagenId) p.fotoEscalaId = null;
+    return imagenesMock(p);
+  }
+  return apiFetch(`/admin/productos/${productoId}/imagenes/${imagenId}/escala`, {
+    method: 'PATCH',
+    body: { es_referencia_escala: esReferenciaEscala },
   });
 }
 
