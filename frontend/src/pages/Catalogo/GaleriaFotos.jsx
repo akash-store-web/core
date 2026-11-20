@@ -48,7 +48,7 @@ function GaleriaFotos({ fotos, nombre }) {
         />
 
         {fotoActual.es_referencia_escala && (
-          <span className="Galeria__etiqueta">Referencia de tamaño</span>
+          <span className="Galeria__etiqueta">Tamaño referencial (con mano)</span>
         )}
 
         {varias && (
