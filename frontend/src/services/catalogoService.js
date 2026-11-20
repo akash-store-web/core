@@ -41,8 +41,8 @@ const fichasMock = [
     material: 'Plata 925', medidas: 'Talla ajustable (6 a 9)', peso_g: '4.20',
     tiene_variantes: true,
     variantes: [
-      { id: 1, nombre: 'Amatista', precio: '45.00', disponible: true, propiedades: 'Se le atribuye calma, intuición y claridad mental.' },
-      { id: 2, nombre: 'Cuarzo rosa', precio: '40.00', disponible: true, propiedades: 'Se le atribuye amor propio y armonía en los vínculos.' },
+      { id: 1, nombre: 'Amatista', precio: '45.00', disponible: true, propiedades: 'Se le atribuye calma, intuición y claridad mental.', intenciones: ['Calma y paz interior', 'Claridad mental', 'Intuición y conexión espiritual'] },
+      { id: 2, nombre: 'Cuarzo rosa', precio: '40.00', disponible: true, propiedades: 'Se le atribuye amor propio y armonía en los vínculos.', intenciones: ['Amor propio y sanación', 'Equilibrio emocional'] },
       { id: 3, nombre: 'Turmalina negra', precio: '40.00', disponible: false, propiedades: 'Se le atribuye protección y enraizamiento.' },
     ],
     imagenes: [
