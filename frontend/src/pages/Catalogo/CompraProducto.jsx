@@ -175,6 +175,20 @@ function CompraProducto({ ficha }) {
         </fieldset>
       )}
 
+      {/* Intenciones de la piedra elegida (HU005): sin intenciones, la sección no aparece */}
+      {(elegida?.intenciones ?? []).length > 0 && (
+        <section className="Intenciones" aria-labelledby="intenciones-titulo">
+          <h2 id="intenciones-titulo" className="Intenciones__titulo">
+            {conSelector ? `Intenciones · ${elegida.nombre}` : 'Intenciones'}
+          </h2>
+          <ul className="Intenciones__lista">
+            {elegida.intenciones.map((intencion) => (
+              <li key={intencion} className="Intenciones__item">{intencion}</li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Escenario 3: propiedades de la variante elegida (se anuncian al cambiar) */}
       <div className="Compra__propiedades" aria-live="polite">
         {elegida?.propiedades ? (
@@ -185,7 +199,7 @@ function CompraProducto({ ficha }) {
             <p>{elegida.propiedades}</p>
           </section>
         ) : (
-          conSelector && !elegida && !agotado && variantes.some((v) => v.propiedades) && (
+          conSelector && !elegida && !agotado && variantes.some((v) => v.propiedades || (v.intenciones ?? []).length > 0) && (
             <p className="Compra__pista">
               Elige {tipo.articulo} {tipo.singular} para ver sus
               propiedades.
