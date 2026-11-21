@@ -24,6 +24,7 @@ function AdminLayout({ children }) {
           <NavLink to="/adminPanel" end>Productos</NavLink>
           <NavLink to="/adminPanel/compras">Compras</NavLink>
           <NavLink to="/adminPanel/envios">Envíos</NavLink>
+        <NavLink to="/adminPanel/ventas">Ventas</NavLink>
         </nav>
 
         <button type="button" className="AdminSalir" onClick={cerrarSesion}>
