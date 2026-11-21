@@ -7,6 +7,8 @@ import ProductoForm from './pages/admin/ProductoForm/ProductoForm.jsx';
 import EnviosAdmin from './pages/admin/Envios/EnviosAdmin.jsx';
 import ComprasAdmin from './pages/admin/Compras/ComprasAdmin.jsx';
 import CompraForm from './pages/admin/Compras/CompraForm.jsx';
+import PedidosAdmin from './pages/admin/Pedidos/PedidosAdmin.jsx';
+import PedidoDetalleAdmin from './pages/admin/Pedidos/PedidoDetalleAdmin.jsx';
 import HomePage from './pages/Home/HomePage.jsx';
 import CatalogoPage from './pages/Catalogo/CatalogoPage.jsx';
 import FichaProductoPage from './pages/Catalogo/FichaProductoPage.jsx';
@@ -66,6 +68,22 @@ function App() {
         element={
           <ProtectedRoute>
             <CompraForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/adminPanel/pedidos"
+        element={
+          <ProtectedRoute>
+            <PedidosAdmin />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/adminPanel/pedidos/:id"
+        element={
+          <ProtectedRoute>
+            <PedidoDetalleAdmin />
           </ProtectedRoute>
         }
       />
