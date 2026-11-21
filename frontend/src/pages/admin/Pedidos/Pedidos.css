@@ -637,3 +637,32 @@
     gap: 24px;
   }
 }
+
+
+/* HU018: botones para cambiar el estado del pedido */
+.PedidoAdmin__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.PedidoAdmin__aviso {
+  flex-basis: 100%;
+  font-size: 14px;
+}
+
+.PedidoAdmin__error {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background-color: #fbe4e1;
+  color: #7a1f14;
+  font-size: 14px;
+}
+
+.PedidoAdmin__error ul {
+  margin-top: 6px;
+  padding-left: 18px;
+}
