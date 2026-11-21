@@ -1,0 +1,639 @@
+/* ===== Panel: pedidos (HU017) =====
+   Bandeja: tabla en computadora; en celular cada pedido es una tarjeta.
+   Detalle: productos a la izquierda y clienta/entrega/historial a la derecha (≥ 900px).
+   Clases propias (Pedidos__, PedidosTabla, PedidoAdmin__) para no chocar con /pedido de la tienda. */
+
+.Pedidos {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.Pedidos__cabecera,
+.PedidoAdmin__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.Pedidos__titulo {
+  font-family: var(--font-title);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: 1px;
+  color: var(--color-marron);
+}
+
+.Pedidos__bajada {
+  margin-top: 4px;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+.Pedidos__aviso {
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-marron);
+  border-radius: 6px;
+  background-color: var(--color-blanco);
+  font-size: 14px;
+}
+
+/* ----- Filtros ----- */
+.Pedidos__filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: var(--color-blanco);
+}
+
+.Pedidos__buscador {
+  display: flex;
+  gap: 8px;
+}
+
+.Pedidos__buscador input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 16px;
+}
+
+.Pedidos__buscador input:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 1px;
+}
+
+.Pedidos__estados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.Pedidos__estado {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 999px;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.Pedidos__estado:hover {
+  border-color: var(--color-marron);
+}
+
+.Pedidos__estado--activo {
+  border-color: var(--color-marron);
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+}
+
+.Pedidos__estado:focus-visible,
+.Pedidos__boton:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+.Pedidos__boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.Pedidos__boton:hover:not(:disabled) {
+  background-color: var(--color-negro-calido);
+}
+
+.Pedidos__boton--secundario {
+  border: 1px solid var(--color-marron);
+  background-color: var(--color-blanco);
+  color: var(--color-marron);
+}
+
+.Pedidos__boton--secundario:hover:not(:disabled) {
+  background-color: var(--color-marmol-claro);
+}
+
+.Pedidos__boton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ----- Estados de carga y vacíos ----- */
+.Pedidos__estadoCarga {
+  padding: 24px 0;
+  font-size: 15px;
+  text-align: center;
+}
+
+.Pedidos__vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  border-radius: 12px;
+  background-color: var(--color-blanco);
+  font-size: 14px;
+  text-align: center;
+}
+
+.Pedidos__vacio .Pedidos__boton {
+  margin-top: 8px;
+}
+
+.Pedidos__vacioTitulo {
+  font-family: var(--font-title);
+  font-size: 26px;
+  color: var(--color-marron);
+}
+
+.Pedidos__conteo {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+/* ----- Tabla (celular: tarjetas) ----- */
+.PedidosTabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.PedidosTabla thead {
+  /* En celular no hay columnas: cada dato lleva su etiqueta (data-etiqueta) */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.PedidosTabla tbody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.PedidosTabla__fila {
+  position: relative; /* para que el enlace cubra toda la tarjeta */
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background-color: var(--color-blanco);
+  transition: box-shadow 0.15s;
+}
+
+.PedidosTabla__fila:hover {
+  box-shadow: 0 0 0 2px var(--color-marmol-beige);
+}
+
+.PedidosTabla__fila:focus-within {
+  box-shadow: 0 0 0 2px var(--color-marron);
+}
+
+.PedidosTabla td {
+  font-size: 14px;
+}
+
+/* Celular: número y estado arriba; clienta, fecha y monto debajo */
+.PedidosTabla td[data-etiqueta='Pedido'] {
+  order: 1;
+}
+
+.PedidosTabla td[data-etiqueta='Estado'] {
+  order: 2;
+  justify-self: end;
+}
+
+.PedidosTabla td[data-etiqueta='Clienta'] {
+  order: 3;
+  grid-column: 1 / -1;
+}
+
+.PedidosTabla td[data-etiqueta='Fecha'] {
+  order: 4;
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.PedidosTabla td[data-etiqueta='Monto'] {
+  order: 5;
+  justify-self: end;
+}
+
+.PedidosTabla__enlace {
+  color: var(--color-marron);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.PedidosTabla__enlace::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.PedidosTabla__enlace:focus-visible {
+  outline: none; /* el foco se dibuja en toda la fila (:focus-within) */
+}
+
+.PedidosTabla__clienta {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.PedidosTabla__monto {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ----- Etiqueta de estado ----- */
+.EstadoPedido {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.EstadoPedido--pendiente {
+  background-color: #f6e7c8;
+  color: #6b4b0f;
+}
+
+.EstadoPedido--confirmado {
+  background-color: #dce9f5;
+  color: #1f4a73;
+}
+
+.EstadoPedido--enviado {
+  background-color: #e7e0f3;
+  color: #4b3474;
+}
+
+.EstadoPedido--entregado {
+  background-color: #dcefe0;
+  color: #24593a;
+}
+
+.EstadoPedido--cancelado {
+  background-color: var(--color-marmol-claro);
+  color: rgba(37, 34, 22, 0.7);
+  text-decoration: line-through;
+}
+
+/* ----- Paginación ----- */
+.Pedidos__paginas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+/* ===== Detalle ===== */
+.PedidoAdmin__volver {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--color-marron);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.PedidoAdmin__volver:hover {
+  text-decoration: underline;
+}
+
+.PedidoAdmin__cabecera {
+  margin-bottom: 20px;
+}
+
+.PedidoAdmin__cabecera .EstadoPedido {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+.PedidoAdmin__grilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.PedidoAdmin__lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.PedidoAdmin__tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 12px;
+  background-color: var(--color-blanco);
+}
+
+.PedidoAdmin__subtitulo {
+  font-family: var(--font-title);
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--color-marron);
+}
+
+.PedidoAdmin__cuenta {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--color-negro-calido);
+  opacity: 0.7;
+}
+
+.PedidoAdmin__items {
+  list-style: none;
+}
+
+.PedidoAdmin__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.PedidoAdmin__itemNombre {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.PedidoAdmin__itemDetalle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.PedidoAdmin__variante {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--color-marmol-beige);
+  color: var(--color-marron);
+  font-weight: 600;
+}
+
+.PedidoAdmin__itemTotal {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.PedidoAdmin__totales {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.PedidoAdmin__totales div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.PedidoAdmin__totales dd {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.PedidoAdmin__total {
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
+.PedidoAdmin__nota {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.PedidoAdmin__datos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.PedidoAdmin__datos dt {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.PedidoAdmin__datos dd {
+  margin-top: 2px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.PedidoAdmin__falta {
+  font-style: italic;
+  color: var(--color-marron);
+}
+
+.PedidoAdmin__whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.PedidoAdmin__whatsapp:hover {
+  background-color: var(--color-negro-calido);
+}
+
+.PedidoAdmin__whatsapp:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 3px;
+}
+
+.PedidoAdmin__historial {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-marmol-beige);
+}
+
+.PedidoAdmin__historial li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.PedidoAdmin__historial li::before {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: -20px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-marron);
+}
+
+.PedidoAdmin__historialEstado {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.PedidoAdmin__historialFecha {
+  font-size: 12px;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+}
+
+/* ===== Tableta y computadora ===== */
+@media (min-width: 768px) {
+  .Pedidos__titulo {
+    font-size: 44px;
+  }
+
+  .PedidosTabla thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+
+  .PedidosTabla,
+  .PedidosTabla tbody {
+    display: table;
+    width: 100%;
+  }
+
+  .PedidosTabla tbody {
+    display: table-row-group;
+  }
+
+  .PedidosTabla {
+    overflow: hidden;
+    border-radius: 12px;
+    background-color: var(--color-blanco);
+  }
+
+  .PedidosTabla th {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-marmol-beige);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: left;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+
+  .PedidosTabla__fila {
+    display: table-row;
+    border-radius: 0;
+  }
+
+  .PedidosTabla__fila:hover {
+    box-shadow: none;
+    background-color: var(--color-marmol-claro);
+  }
+
+  .PedidosTabla__fila:focus-within {
+    box-shadow: inset 0 0 0 2px var(--color-marron);
+  }
+
+  .PedidosTabla td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--color-marmol-beige);
+    vertical-align: middle;
+  }
+
+  .PedidosTabla tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .PedidosTabla td[data-etiqueta='Fecha'] {
+    font-size: 14px;
+    opacity: 1;
+  }
+
+  .PedidosTabla__num {
+    text-align: right !important;
+  }
+
+  .Pedidos__filtros {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .Pedidos__buscador {
+    flex: 1 1 360px;
+  }
+}
+
+@media (min-width: 900px) {
+  .PedidoAdmin__grilla {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 24px;
+  }
+}

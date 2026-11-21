@@ -1,22 +1,21 @@
+/* ===== Panel de la propietaria =====
+   Computadora (≥ 1024px): barra lateral fija a la izquierda y el contenido a la derecha.
+   Celular y tablet: barra superior con ☰ que abre el mismo menú desde la izquierda. */
+
 .AdminPage {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-marmol-claro);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
 }
 
-.AdminHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
-  background-color: var(--color-blanco);
-  border-bottom: 1px solid var(--color-marmol-beige);
-}
-
+/* ----- Marca ----- */
 .AdminMarca {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   color: var(--color-marron);
   text-decoration: none;
 }
@@ -25,12 +24,14 @@
   width: 36px;
   height: 36px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 .AdminMarca span {
   font-family: var(--font-title);
   font-size: 26px;
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 
 .AdminMarca small {
@@ -41,62 +42,274 @@
   font-weight: 600;
 }
 
-.AdminSalir {
-  height: 40px;
-  padding: 0 16px;
-  border: 1px solid var(--color-marron);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-marron);
-  font-family: var(--font-ui);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.AdminSalir:hover {
-  background-color: var(--color-marron);
-  color: var(--color-blanco);
-}
-
-.AdminMain {
-  width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
-}/* Navegación entre secciones del panel */
-.AdminHeader {
-  flex-wrap: wrap;
+/* ----- Menú (barra lateral y menú del celular) ----- */
+.AdminNavegacion {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+  padding: 20px 16px;
 }
 
 .AdminNav {
   display: flex;
-  gap: 8px;
-  order: 3;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.AdminNav ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.AdminNav__titulo {
+  margin: 0 12px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.AdminNav__enlace {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-}
-
-.AdminNav a {
-  padding: 8px 14px;
-  border-radius: 4px;
-  color: var(--color-marron);
-  font-size: 14px;
-  font-weight: 600;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
   text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
 }
 
-.AdminNav a:hover {
+.AdminNav__enlace:hover {
+  background-color: var(--color-marmol-claro);
+  color: var(--color-marron);
+}
+
+.AdminNav__enlace:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 1px;
+}
+
+.AdminNav__enlace--activo {
+  background-color: var(--color-marmol-beige);
+  color: var(--color-marron);
+  font-weight: 700;
+}
+
+.AdminIcono {
+  flex-shrink: 0;
+}
+
+.AdminNav__contador {
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
+.AdminNavegacion__pie {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.AdminNav__salir:hover {
+  color: var(--color-error);
+}
+
+/* ----- Barra lateral (computadora) ----- */
+.AdminLateral {
+  display: none;
+}
+
+/* ----- Barra superior (celular y tablet) ----- */
+.AdminBarra {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--color-blanco);
+  border-bottom: 1px solid var(--color-marmol-beige);
+}
+
+.AdminBarra .AdminMarca span {
+  font-size: 24px;
+}
+
+.AdminBarra .AdminMarca img {
+  width: 32px;
+  height: 32px;
+}
+
+.AdminBarra__menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-negro-calido);
+  cursor: pointer;
+}
+
+.AdminBarra__menu:hover {
   background-color: var(--color-marmol-claro);
 }
 
-.AdminNav a.active {
-  background-color: var(--color-marron);
-  color: var(--color-blanco);
+.AdminBarra__menu:focus-visible {
+  outline: 2px solid var(--color-marron);
 }
 
-@media (min-width: 768px) {
-  .AdminNav {
-    order: 0;
-    width: auto;
+.AdminBarra__punto {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-blanco);
+  border-radius: 50%;
+  background-color: var(--color-marron);
+}
+
+/* ----- Menú del celular (dialog nativo) ----- */
+html:has(.AdminMenu[open]) {
+  overflow: hidden;
+}
+
+.AdminMenu {
+  inset: 0 auto 0 0;
+  width: min(300px, 85vw);
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  box-shadow: 8px 0 32px rgba(37, 34, 22, 0.18);
+}
+
+.AdminMenu[open] {
+  animation: admin-menu-entrar 0.22s ease-out;
+}
+
+.AdminMenu::backdrop {
+  background-color: rgba(37, 34, 22, 0.45);
+}
+
+@keyframes admin-menu-entrar {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .AdminMenu[open] {
+    animation: none;
+  }
+}
+
+.AdminMenu__cerrar {
+  position: absolute;
+  top: 16px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-negro-calido);
+  cursor: pointer;
+}
+
+.AdminMenu__cerrar:focus-visible {
+  outline: 2px solid var(--color-marron);
+}
+
+/* Espacio para la ✕: la marca no pasa por debajo del botón */
+.AdminMenu .AdminMarca {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  padding-right: 48px;
+}
+
+/* ----- Contenido ----- */
+.AdminContenido {
+  min-width: 0;
+}
+
+.AdminMain {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+/* ===== Computadora ===== */
+@media (min-width: 1024px) {
+  .AdminLateral {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 10;
+    display: block;
+    width: 248px;
+    overflow-y: auto;
+    background-color: var(--color-blanco);
+    border-right: 1px solid var(--color-marmol-beige);
+  }
+
+  /* La marca entra en los 248px: si no cabe en una línea, «Panel» baja debajo del nombre */
+  .AdminLateral .AdminMarca {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .AdminLateral .AdminMarca span {
+    font-size: 24px;
+  }
+
+  .AdminContenido {
+    margin-left: 248px;
+  }
+
+  .AdminBarra {
+    display: none;
+  }
+
+  .AdminMain {
+    padding: 32px 32px 64px;
   }
 }
