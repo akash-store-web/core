@@ -10,6 +10,7 @@ import CompraForm from './pages/admin/Compras/CompraForm.jsx';
 import HomePage from './pages/Home/HomePage.jsx';
 import CatalogoPage from './pages/Catalogo/CatalogoPage.jsx';
 import FichaProductoPage from './pages/Catalogo/FichaProductoPage.jsx';
+import PedidoPage from './pages/Pedido/PedidoPage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PublicLayout from './components/PublicLayout.jsx';
 import './App.css';
@@ -22,6 +23,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/catalogo" element={<CatalogoPage />} />
         <Route path="/catalogo/:id" element={<FichaProductoPage />} />
+        <Route path="/pedido" element={<PedidoPage />} />
       </Route>
 
       <Route path="/admin" element={<Login />} />

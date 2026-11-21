@@ -1,5 +1,6 @@
 import { USE_MOCK } from './config.js';
 import { apiFetch } from './http.js';
+import { pedirPublico } from './catalogoService.js';
 
 const esperar = (ms = 350) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -132,4 +133,27 @@ export async function consultarCostoEnvio(distritoId) {
     };
   }
   return apiFetch(`/envio/costo?distrito_id=${distritoId}`);
+}
+
+/* ------------------------------------------------------------------ */
+/*  PÚBLICO: distritos para el formulario del pedido (HU010)           */
+/* ------------------------------------------------------------------ */
+
+// GET /envio/distritos → [{ id, nombre, con_cobertura, costo_envio }], ordenados por nombre.
+// Es público: usa pedirPublico (sin token), no apiFetch.
+export async function listarDistritosEnvio({ signal } = {}) {
+  let distritos;
+  if (USE_MOCK) {
+    await esperar();
+    distritos = distritosMock.map((d) => ({
+      id: d.id,
+      nombre: d.nombre,
+      con_cobertura: conCobertura(d),
+      costo_envio: conCobertura(d) ? zonaDe(d).costo : null,
+    }));
+  } else {
+    distritos = await pedirPublico('/envio/distritos', { signal });
+  }
+  if (!Array.isArray(distritos)) throw new Error('Respuesta inesperada de distritos.');
+  return [...distritos].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 }
