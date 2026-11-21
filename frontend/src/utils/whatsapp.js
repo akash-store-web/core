@@ -25,3 +25,8 @@ export function armarMensajeConsulta({ producto, variante, sinElegir, agotado, e
 export function enlaceWhatsApp(numero, mensaje) {
   return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
 }
+// HU009 E6: más de 10 unidades de un producto se coordinan por WhatsApp.
+export function armarMensajePedidoMayor({ producto, variante }) {
+  const nombre = variante ? `${producto} (${variante})` : producto;
+  return `Hola, quiero pedir más de 10 unidades de este producto de Akash Store Perú: ${nombre}. ¿Me ayudan con el pedido?`;
+}

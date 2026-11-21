@@ -1,0 +1,562 @@
+/* ===== Carrito (HU009) =====
+   Panel lateral que entra desde la derecha en celular y en computadora.
+   Celular: ocupa todo el ancho. Desde 480px: 420px de ancho y la tienda se ve detrás. */
+
+/* ----- Botón de la cabecera ----- */
+.BotonCarrito {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--color-negro-calido);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.BotonCarrito:hover {
+  background-color: var(--color-marmol-claro);
+  color: var(--color-marron);
+}
+
+.BotonCarrito:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+.BotonCarrito__contador {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* ----- Panel (dialog nativo) ----- */
+/* Mientras el panel está abierto, la página de atrás no se desplaza */
+html:has(.CarritoPanel[open]) {
+  overflow: hidden;
+}
+
+.CarritoPanel {
+  /* El navegador centra los <dialog>: aquí se pega a la derecha y ocupa todo el alto */
+  inset: 0 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background-color: var(--color-blanco);
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  box-shadow: -8px 0 32px rgba(37, 34, 22, 0.18);
+}
+
+.CarritoPanel[open] {
+  animation: carrito-entrar 0.25s ease-out;
+}
+
+.CarritoPanel::backdrop {
+  background-color: rgba(37, 34, 22, 0.45);
+}
+
+.CarritoPanel[open]::backdrop {
+  animation: carrito-fondo 0.25s ease-out;
+}
+
+@keyframes carrito-entrar {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes carrito-fondo {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .CarritoPanel[open],
+  .CarritoPanel[open]::backdrop {
+    animation: none;
+  }
+}
+
+.CarritoPanel__contenido {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.CarritoPanel__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 20px;
+  border-bottom: 1px solid var(--color-marmol-beige);
+}
+
+.CarritoPanel__titulo {
+  font-family: var(--font-title);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--color-marron);
+}
+
+/* El título recibe el foco al abrir (el lector de pantalla anuncia «Tu carrito») y al eliminar
+   una línea. No es un control, así que no se dibuja el borde de foco. */
+.CarritoPanel__titulo:focus {
+  outline: none;
+}
+
+.CarritoPanel__cuenta {
+  font-size: 22px;
+}
+
+.CarritoPanel__cerrar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-negro-calido);
+  cursor: pointer;
+}
+
+.CarritoPanel__cerrar:hover {
+  background-color: var(--color-marmol-claro);
+}
+
+.CarritoPanel__cerrar:focus-visible,
+.CarritoPanel__seguir:focus-visible,
+.CarritoPanel__reintentar:focus-visible,
+.CarritoPanel a:focus-visible,
+.Linea button:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+/* La lista es lo único que se desplaza; la cabecera y el total quedan fijos */
+.CarritoPanel__cuerpo {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 20px;
+}
+
+.CarritoPanel__lista {
+  list-style: none;
+}
+
+.CarritoPanel__lista > li + li {
+  border-top: 1px solid var(--color-marmol-beige);
+}
+
+.CarritoPanel__aviso {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-marron);
+  border-radius: 6px;
+  background-color: var(--color-marmol-claro);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.CarritoPanel__aviso--error {
+  border-left-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.CarritoPanel__reintentar {
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 16px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: var(--color-blanco);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.CarritoPanel__nota {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+/* Pie: total y botones */
+.CarritoPanel__pie {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-marmol-beige);
+  background-color: var(--color-blanco);
+}
+
+.CarritoPanel__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.CarritoPanel__total strong {
+  font-size: 20px;
+}
+
+.CarritoPanel__envio,
+.CarritoPanel__bloqueo {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.CarritoPanel__bloqueo {
+  text-align: center;
+}
+
+.CarritoPanel__continuar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 4px;
+  padding: 0 24px;
+  border: none;
+  border-radius: 999px;
+  background-color: var(--color-marron);
+  color: var(--color-blanco);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.CarritoPanel__continuar:hover:not(:disabled) {
+  background-color: var(--color-negro-calido);
+}
+
+.CarritoPanel__continuar:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 3px;
+}
+
+.CarritoPanel__continuar:disabled {
+  background-color: var(--color-marmol-beige);
+  color: rgba(37, 34, 22, 0.6);
+  cursor: not-allowed;
+}
+
+.CarritoPanel__continuar[aria-busy='true'] {
+  cursor: progress;
+}
+
+.CarritoPanel__seguir {
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Carrito vacío */
+.CarritoPanel__vacio {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.CarritoPanel__vacioTitulo {
+  font-family: var(--font-title);
+  font-size: 28px;
+  color: var(--color-marron);
+}
+
+.CarritoPanel__vacio .CarritoPanel__continuar {
+  max-width: 280px;
+  margin-top: 12px;
+}
+
+/* ----- Línea del carrito ----- */
+.Linea {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  padding: 16px 0;
+}
+
+.Linea__foto {
+  grid-row: span 2;
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  background-color: var(--color-marmol-claro);
+  object-fit: contain; /* foto completa (regla del proyecto) */
+}
+
+.Linea__info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.Linea__nombre {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.Linea__nombre a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.Linea__nombre a:hover {
+  color: var(--color-marron);
+  text-decoration: underline;
+}
+
+.Linea__variante {
+  font-size: 13px;
+  opacity: 0.75;
+}
+
+.Linea__estado {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+.Linea__lado {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.Linea__quitar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -10px -12px 0 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-negro-calido);
+  cursor: pointer;
+}
+
+.Linea__quitar:hover {
+  background-color: var(--color-marmol-claro);
+  color: var(--color-error);
+}
+
+.Linea__precio {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.Linea__unitario {
+  font-size: 12px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+
+.Linea__noSuma {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+/* E8: la línea no disponible se ve atenuada (menos el botón de eliminar y el aviso) */
+.Linea--fuera .Linea__foto,
+.Linea--fuera .Linea__nombre,
+.Linea--fuera .Linea__variante,
+.Linea--fuera .Linea__precio {
+  opacity: 0.5;
+}
+
+.Linea__avisos {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.Linea__avisos:empty {
+  display: none;
+}
+
+.Linea__aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-error);
+}
+
+.Linea__aviso p {
+  flex-basis: 100%;
+}
+
+.Linea__aviso--info {
+  color: var(--color-marron);
+}
+
+.Linea__ajustar {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-marron);
+  border-radius: 999px;
+  background: var(--color-blanco);
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.EnlacePedidoMayor {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--color-marron);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ----- Selector de cantidad (carrito y ficha) ----- */
+.Cantidad {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.Cantidad__etiqueta {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.Cantidad__control {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: stretch;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 999px;
+  background-color: var(--color-blanco);
+}
+
+.Cantidad__boton {
+  width: 40px;
+  min-height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-negro-calido);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.Cantidad__boton:hover:not([aria-disabled='true']) {
+  background-color: var(--color-marmol-claro);
+}
+
+.Cantidad__boton[aria-disabled='true'] {
+  color: rgba(37, 34, 22, 0.35);
+  cursor: not-allowed;
+}
+
+.Cantidad__boton:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 1px;
+}
+
+.Cantidad__campo {
+  width: 44px;
+  border: none;
+  background: transparent;
+  color: var(--color-negro-calido);
+  font-family: var(--font-ui);
+  font-size: 15px; /* 16px en celular evita el zoom automático de iOS: ver media query */
+  font-weight: 600;
+  text-align: center;
+}
+
+.Cantidad__campo:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+.Cantidad--ocupado .Cantidad__control {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+@media (max-width: 767px) {
+  .Cantidad__campo {
+    font-size: 16px;
+  }
+}
+
+/* ----- Desde 480px el panel deja ver la tienda detrás ----- */
+@media (min-width: 480px) {
+  .CarritoPanel {
+    width: 420px;
+  }
+
+  .Linea {
+    grid-template-columns: 80px minmax(0, 1fr) auto;
+  }
+
+  .Linea__foto {
+    width: 80px;
+    height: 80px;
+  }
+}

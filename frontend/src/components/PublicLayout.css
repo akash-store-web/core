@@ -84,6 +84,14 @@
 .PublicNav {
   display: flex;
   gap: 4px;
+  /* Celular: el menú baja a la segunda fila y el carrito queda arriba a la derecha (HU009) */
+  order: 3;
+  width: 100%;
+}
+
+.PublicHeader__inner .BotonCarrito {
+  order: 2;
+  margin-left: auto;
 }
 
 .PublicNav a {
@@ -226,6 +234,14 @@
 
   .PublicNav {
     gap: 12px;
+    order: 0;
+    width: auto;
+    margin-left: auto;
+  }
+
+  .PublicHeader__inner .BotonCarrito {
+    order: 0;
+    margin-left: 0;
   }
 
   .PublicMain {
