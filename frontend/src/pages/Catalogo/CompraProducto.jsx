@@ -1,5 +1,9 @@
 import { useRef, useState } from 'react';
+import EnlacePedidoMayor from '../../components/Carrito/EnlacePedidoMayor.jsx';
+import SelectorCantidad from '../../components/Carrito/SelectorCantidad.jsx';
+import { useCarrito } from '../../context/carritoContext.js';
 import { agregarAlCarrito } from '../../services/carritoService.js';
+import { MAX_POR_LINEA } from '../../utils/carrito.js';
 import { soles } from '../../utils/formato.js';
 import BotonWhatsApp from './BotonWhatsApp.jsx';
 
@@ -11,13 +15,18 @@ function queSeElige(categoria = '') {
   return { singular: 'opción', articulo: 'una' };
 }
 
-// Precio, disponibilidad, selector de variante, propiedades y botón de compra (HU028).
+const unidades = (n) => (n === 1 ? '1 unidad' : `${n} unidades`);
+
+// Precio, disponibilidad, selector de variante, cantidad, propiedades y botón de compra (HU028 + HU009).
 function CompraProducto({ ficha }) {
+  const { abrir: abrirCarrito } = useCarrito();
   const [elegidaId, setElegidaId] = useState(null);
+  const [cantidad, setCantidad] = useState(1); // HU009: cuántas unidades agregar
+
   const [agotadasAhora, setAgotadasAhora] = useState([]); // se agotaron mientras se miraba la ficha (E7)
   const [preciosNuevos, setPreciosNuevos] = useState({}); // precio vigente informado por el servidor
   const [faltaElegir, setFaltaElegir] = useState(false);
-  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', texto }
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', texto, whatsapp? }
   const [enviando, setEnviando] = useState(false);
   const grupoRef = useRef(null);
 
@@ -57,7 +66,7 @@ function CompraProducto({ ficha }) {
 
     setEnviando(true);
     try {
-      const resultado = await agregarAlCarrito({ ficha, variante: elegida });
+      const resultado = await agregarAlCarrito({ ficha, variante: elegida, cantidad });
 
       if (resultado.ok) {
         const { item, precioAnterior } = resultado;
@@ -67,9 +76,12 @@ function CompraProducto({ ficha }) {
         setAviso({
           tipo: 'exito',
           texto:
-            `Agregado al carrito: ${item.producto}${item.variante ? ` — ${item.variante}` : ''}.` +
+            `Agregado al carrito: ${item.producto}${item.variante ? ` — ${item.variante}` : ''}` +
+            ` (${unidades(item.cantidad)} en tu carrito).` +
             (precioAnterior ? ` El precio se actualizó a ${soles(item.precio)}.` : ''),
         });
+        setCantidad(1);
+        abrirCarrito(); // HU009 Esc. 1: se ve el pedido con el total actualizado
         return;
       }
 
@@ -88,13 +100,36 @@ function CompraProducto({ ficha }) {
         return;
       }
 
+      // HU009 Esc. 3: no se agrega y se indica cuántas unidades hay
       if (resultado.estado === 'stock_insuficiente') {
         const { cantidadMaxima, enCarrito } = resultado;
+        const disponibles = `Solo ${cantidadMaxima === 1 ? 'hay 1 unidad disponible' : `hay ${cantidadMaxima} unidades disponibles`}`;
+        setAviso({
+          tipo: 'error',
+          texto: enCarrito > 0
+            ? `${disponibles} y ya ${enCarrito === 1 ? 'tienes 1' : `tienes ${enCarrito}`} en tu carrito.`
+            : `${disponibles}. Elige una cantidad menor.`,
+        });
+        return;
+      }
+
+      // HU009 E6: máximo 10 por producto; para más, WhatsApp
+      if (resultado.estado === 'limite') {
+        const { enCarrito } = resultado;
         setAviso({
           tipo: 'error',
           texto:
-            `Solo ${cantidadMaxima === 1 ? 'queda 1 unidad' : `quedan ${cantidadMaxima} unidades`}` +
-            ` y ya ${enCarrito === 1 ? 'tienes 1' : `tienes ${enCarrito}`} en tu carrito.`,
+            `Puedes llevar hasta ${MAX_POR_LINEA} unidades por producto` +
+            (enCarrito > 0 ? ` y ya tienes ${enCarrito} en tu carrito.` : '.'),
+          whatsapp: true,
+        });
+        return;
+      }
+
+      if (resultado.estado === 'lineas') {
+        setAviso({
+          tipo: 'error',
+          texto: 'Tu carrito ya tiene 50 productos distintos. Envía ese pedido y luego arma uno nuevo.',
         });
       }
     } catch (error) {
@@ -208,6 +243,26 @@ function CompraProducto({ ficha }) {
         )}
       </div>
 
+      {/* HU009: cantidad a agregar (E5: inválida → se rechaza y queda la anterior; E6: máximo 10) */}
+      {!agotado && (
+        <SelectorCantidad
+          id={`cantidad-${ficha.id}`}
+          valor={cantidad}
+          onCambiar={(nueva) => {
+            setCantidad(nueva);
+            setAviso(null);
+          }}
+          onError={({ tipo, error }) =>
+            setAviso({
+              tipo: 'error',
+              texto: tipo === 'limite' ? error : `${error} Se mantiene la cantidad anterior (${cantidad}).`,
+              whatsapp: tipo === 'limite',
+            })
+          }
+          ocupado={enviando}
+        />
+      )}
+
       <button
         type="button"
         className="Compra__boton"
@@ -232,6 +287,12 @@ function CompraProducto({ ficha }) {
           role={aviso.tipo === 'error' ? 'alert' : 'status'}
         >
           {aviso.texto}
+          {aviso.whatsapp && (
+            <>
+              {' '}
+              <EnlacePedidoMayor producto={ficha.nombre} variante={conSelector ? elegida?.nombre : null} />
+            </>
+          )}
         </p>
       )}
     </div>

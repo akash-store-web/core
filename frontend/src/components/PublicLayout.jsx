@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import logo from '../assets/logo.png';
+import BotonCarrito from './Carrito/BotonCarrito.jsx';
+import CarritoPanel from './Carrito/CarritoPanel.jsx';
+import CarritoProvider from './Carrito/CarritoProvider.jsx';
 import './PublicLayout.css';
 
 // Enlaces del menú público. Agregar aquí las secciones nuevas (Ofertas, Contacto…)
@@ -19,53 +22,60 @@ function PublicLayout() {
   }, [pathname]);
 
   return (
-    <div className="PublicPage">
-      <a href="#contenido" className="PublicSaltar">
-        Saltar al contenido
-      </a>
+    // El carrito (HU009) se comparte entre la cabecera, las páginas y el panel lateral
+    <CarritoProvider>
+      <div className="PublicPage">
+        <a href="#contenido" className="PublicSaltar">
+          Saltar al contenido
+        </a>
 
-      <header className="PublicHeader">
-        <div className="PublicHeader__inner">
-          <Link to="/" className="PublicMarca" aria-label="Akash Store, ir al inicio">
-            <img src={logo} alt="" width="40" height="40" />
-            <span className="PublicMarca__nombre">Akash Store</span>
-          </Link>
+        <header className="PublicHeader">
+          <div className="PublicHeader__inner">
+            <Link to="/" className="PublicMarca" aria-label="Akash Store, ir al inicio">
+              <img src={logo} alt="" width="40" height="40" />
+              <span className="PublicMarca__nombre">Akash Store</span>
+            </Link>
 
-          <nav className="PublicNav" aria-label="Principal">
-            {ENLACES.map((enlace) => (
-              <NavLink key={enlace.to} to={enlace.to} end={enlace.end}>
-                {enlace.texto}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-      </header>
+            <nav className="PublicNav" aria-label="Principal">
+              {ENLACES.map((enlace) => (
+                <NavLink key={enlace.to} to={enlace.to} end={enlace.end}>
+                  {enlace.texto}
+                </NavLink>
+              ))}
+            </nav>
 
-      <main id="contenido" className="PublicMain" tabIndex={-1}>
-        <Outlet />
-      </main>
-
-      <footer className="PublicFooter">
-        <div className="PublicFooter__inner">
-          <div className="PublicFooter__marca">
-            <span className="PublicFooter__nombre">Akash Store Perú</span>
-            <p>Cuarzos, joyería de plata e inciensos.</p>
+            <BotonCarrito />
           </div>
+        </header>
 
-          <nav className="PublicFooter__nav" aria-label="Pie de página">
-            {ENLACES.map((enlace) => (
-              <Link key={enlace.to} to={enlace.to}>
-                {enlace.texto}
-              </Link>
-            ))}
-          </nav>
+        <main id="contenido" className="PublicMain" tabIndex={-1}>
+          <Outlet />
+        </main>
 
-          <p className="PublicFooter__legal">
-            © {new Date().getFullYear()} Akash Store Perú
-          </p>
-        </div>
-      </footer>
-    </div>
+        <footer className="PublicFooter">
+          <div className="PublicFooter__inner">
+            <div className="PublicFooter__marca">
+              <span className="PublicFooter__nombre">Akash Store Perú</span>
+              <p>Cuarzos, joyería de plata e inciensos.</p>
+            </div>
+
+            <nav className="PublicFooter__nav" aria-label="Pie de página">
+              {ENLACES.map((enlace) => (
+                <Link key={enlace.to} to={enlace.to}>
+                  {enlace.texto}
+                </Link>
+              ))}
+            </nav>
+
+            <p className="PublicFooter__legal">
+              © {new Date().getFullYear()} Akash Store Perú
+            </p>
+          </div>
+        </footer>
+
+        <CarritoPanel />
+      </div>
+    </CarritoProvider>
   );
 }
 
