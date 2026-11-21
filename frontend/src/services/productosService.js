@@ -121,11 +121,56 @@ export async function listarProductos({ q = '', categoriaId = '' } = {}) {
   return apiFetch(`/admin/productos${query ? `?${query}` : ''}`);
 }
 
+/* HU008: intenciones (catálogo fijo de 13) y su asignación a variantes */
+const intencionesMock = [
+  { id: 1, nombre: 'Protección', activa: true },
+  { id: 2, nombre: 'Abundancia y prosperidad', activa: true },
+  { id: 3, nombre: 'Amor propio y sanación', activa: true },
+  { id: 4, nombre: 'Calma y paz interior', activa: true },
+  { id: 5, nombre: 'Claridad mental', activa: true },
+  { id: 6, nombre: 'Comunicación', activa: true },
+  { id: 7, nombre: 'Creatividad y motivación', activa: true },
+  { id: 8, nombre: 'Energía y vitalidad', activa: true },
+  { id: 9, nombre: 'Equilibrio emocional', activa: true },
+  { id: 10, nombre: 'Intuición y conexión espiritual', activa: true },
+  { id: 11, nombre: 'Buena suerte', activa: true },
+  { id: 12, nombre: 'Transformación personal', activa: true },
+  { id: 13, nombre: 'Confianza y fuerza personal', activa: true },
+];
+const intencionesDeVarianteMock = { 1: [4, 5, 10] };
+const intencionesDe = (varianteId) =>
+  (intencionesDeVarianteMock[varianteId] ?? [])
+    .map((i) => intencionesMock.find((x) => x.id === i))
+    .filter(Boolean)
+    .map(({ id, nombre }) => ({ id, nombre }));
+
+export async function listarIntenciones() {
+  if (USE_MOCK) {
+    await esperar(200);
+    return intencionesMock;
+  }
+  return apiFetch('/admin/intenciones');
+}
+
+export async function asignarIntenciones(varianteId, intencionIds) {
+  if (USE_MOCK) {
+    await esperar(200);
+    const ids = [...new Set(intencionIds)];
+    if (ids.length > 5) throw new ApiError('Máximo 5 intenciones por piedra', 422);
+    intencionesDeVarianteMock[varianteId] = ids;
+    return intencionesDe(varianteId);
+  }
+  return apiFetch(`/admin/variantes/${varianteId}/intenciones`, {
+    method: 'PUT',
+    body: { intencion_ids: intencionIds },
+  });
+}
+
 export async function listarVariantes(productoId) {
   if (USE_MOCK) {
     await esperar(250);
     const producto = productosMock.find((p) => p.id === productoId);
-    return producto ? producto.variantes.map((v) => aVarianteOut(producto, v)) : [];
+    return producto ? producto.variantes.map((v) => ({ ...aVarianteOut(producto, v), intenciones: intencionesDe(v.id) })) : [];
   }
   return apiFetch(`/admin/productos/${productoId}/variantes`);
 }

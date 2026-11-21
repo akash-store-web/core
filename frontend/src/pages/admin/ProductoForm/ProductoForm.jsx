@@ -10,6 +10,8 @@ import {
   listarCategorias,
   listarVariantes,
   marcarImagenEscala,
+  listarIntenciones,
+  asignarIntenciones,
   marcarImagenPrincipal,
   obtenerProducto,
   subirImagen,
@@ -17,6 +19,7 @@ import {
 import './ProductoForm.css';
 
 const MAX_FOTOS = 5;
+const MAX_INTENCIONES = 5; // HU008 E6
 const MAX_MB = 5;
 const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
 // HU014 escenario 1 pide al menos una fotografía. Ponlo en false si el equipo decide lo contrario.
@@ -39,7 +42,8 @@ const FORM_INICIAL = {
 let contadorId = 0;
 const nuevoId = () => ++contadorId;
 // `id` = id en el backend (null mientras la variante es nueva). Las existencias NO se editan aquí.
-const nuevaVariante = () => ({ key: nuevoId(), id: null, nombre: '', precio: '', propiedades: '' });
+const nuevaVariante = () => ({ key: nuevoId(), id: null, nombre: '', precio: '', propiedades: '', intencionIds: [], intencionIdsGuardadas: [] });
+const mismasIntenciones = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 const NOMBRE_UNICA = 'Única';
 
 const limpiarDecimal = (texto) => texto.trim().replace(',', '.');
@@ -174,6 +178,14 @@ function ProductoForm() {
   const [tieneVariantes, setTieneVariantes] = useState(false);
   const [variantes, setVariantes] = useState(() => [nuevaVariante()]);
   const [fotos, setFotos] = useState([]);
+  const [intenciones, setIntenciones] = useState([]);
+  const [errorIntenciones, setErrorIntenciones] = useState('');
+  useEffect(() => {
+    if (!esEdicion) return;
+    listarIntenciones()
+      .then((lista) => setIntenciones(lista.filter((x) => x.activa)))
+      .catch(() => setErrorIntenciones('No se pudieron cargar las intenciones.'));
+  }, [esEdicion]);
   const [errores, setErrores] = useState({});
   const [categorias, setCategorias] = useState([]);
   const [errorCategorias, setErrorCategorias] = useState('');
@@ -231,6 +243,8 @@ function ProductoForm() {
           nombre: v.nombre,
           precio: aTextoForm(v.precio),
           propiedades: aTextoForm(v.propiedades),
+          intencionIds: (v.intenciones ?? []).map((x) => x.id),
+          intencionIdsGuardadas: (v.intenciones ?? []).map((x) => x.id),
           existencias: v.existencias, // solo lectura
         }));
         const soloUnica = cargadas.length === 1 && cargadas[0].nombre === NOMBRE_UNICA;
@@ -364,6 +378,20 @@ function ProductoForm() {
     });
   }
 
+  /* ---------- Intenciones (HU008) ---------- */
+  function alternarIntencion(indice, intencionId) {
+    setVariantes((prev) =>
+      prev.map((v, i) => {
+        if (i !== indice) return v;
+        const actuales = v.intencionIds ?? [];
+        const marcada = actuales.includes(intencionId);
+        if (!marcada && actuales.length >= MAX_INTENCIONES) return v;
+        const intencionIds = marcada ? actuales.filter((x) => x !== intencionId) : [...actuales, intencionId];
+        return { ...v, intencionIds };
+      }),
+    );
+  }
+
   /* ---------- Foto de escala (HU004) ---------- */
 
   // Como mucho una foto de escala por producto: marcar otra desmarca la anterior (E3).
@@ -409,9 +437,18 @@ function ProductoForm() {
         try {
           if (v.id) {
             await actualizarVariante(Number(id), v.id, cuerpoVariante(v));
+            if (!mismasIntenciones(v.intencionIds ?? [], v.intencionIdsGuardadas ?? [])) {
+              await asignarIntenciones(v.id, v.intencionIds ?? []);
+              lista[i] = { ...v, intencionIdsGuardadas: [...(v.intencionIds ?? [])] };
+              setVariantes((prev) => prev.map((x) => (x.key === v.key ? lista[i] : x)));
+            }
           } else {
             const creada = await crearVariante(Number(id), cuerpoVariante(v));
-            lista[i] = { ...v, id: creada.id, existencias: 0 };
+            lista[i] = { ...v, id: creada.id, existencias: 0, intencionIdsGuardadas: [] };
+            if ((v.intencionIds ?? []).length > 0) {
+              await asignarIntenciones(creada.id, v.intencionIds);
+              lista[i] = { ...lista[i], intencionIdsGuardadas: [...v.intencionIds] };
+            }
             setVariantes((prev) => prev.map((x) => (x.key === v.key ? lista[i] : x)));
           }
         } catch (err) {
@@ -822,6 +859,37 @@ function ProductoForm() {
                         </div>
                       )}
                     </div>
+
+                    {esEdicion ? (
+                      <fieldset className="IntencionesForm">
+                        <legend>Intenciones (máx. {MAX_INTENCIONES})</legend>
+                        {errorIntenciones && <p role="alert">{errorIntenciones}</p>}
+                        <div className="IntencionesOpciones">
+                          {intenciones.map((it) => {
+                            const marcada = (v.intencionIds ?? []).includes(it.id);
+                            const llena = (v.intencionIds ?? []).length >= MAX_INTENCIONES;
+                            return (
+                              <label key={it.id} className={`IntencionOpcion${marcada ? ' IntencionOpcion--marcada' : ''}`}>
+                                <input
+                                  type="checkbox"
+                                  checked={marcada}
+                                  disabled={!marcada && llena}
+                                  onChange={() => alternarIntencion(i, it.id)}
+                                />
+                                {it.nombre}
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <small>
+                          {(v.intencionIds ?? []).length} de {MAX_INTENCIONES} intenciones. Se guardan al pulsar «Guardar cambios».
+                        </small>
+                      </fieldset>
+                    ) : (
+                      <p>
+                        <small>Las intenciones se asignan al editar el producto, después de guardarlo.</small>
+                      </p>
+                    )}
 
                     <Campo id={`campo-variante_${i}_propiedades`} label="Propiedades atribuidas">
                       <textarea
