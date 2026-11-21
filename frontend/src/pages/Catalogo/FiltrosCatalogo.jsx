@@ -1,4 +1,5 @@
 import FiltroPrecio from './FiltroPrecio.jsx';
+import FiltroIntencion from './FiltroIntencion.jsx';
 import InterruptorDisponibles from './InterruptorDisponibles.jsx';
 import { centimosATexto, hayFiltros } from '../../utils/filtrosCatalogo.js';
 
@@ -8,6 +9,7 @@ import { centimosATexto, hayFiltros } from '../../utils/filtrosCatalogo.js';
 // No guarda estado propio de los filtros: lo aplicado vive en la URL y llega por props.
 // Cada cambio se avisa con onCambiar({ ... }) y la página actualiza la URL.
 function FiltrosCatalogo({
+  intenciones,
   categorias,
   conteo,
   filtros,
@@ -43,6 +45,9 @@ function FiltrosCatalogo({
         </div>
 
         <div className="Filtros__contenido">
+          {/* HU008: primero la intención, el diferenciador de la tienda */}
+          <FiltroIntencion intenciones={intenciones} seleccionada={filtros.intencion} onCambiar={onCambiar} />
+
           {/* HU029: se conserva el interruptor, ahora como un filtro más */}
           <InterruptorDisponibles
             activo={filtros.soloDisponibles}
@@ -104,7 +109,9 @@ function FiltrosCatalogo({
         {/* Solo en celular: vuelve al listado */}
         <div className="Filtros__pie">
           <button type="button" className="Filtros__ver" onClick={onCerrar}>
-            Ver {totalVisibles} {totalVisibles === 1 ? 'producto' : 'productos'}
+            {totalVisibles === null
+              ? 'Ver productos'
+              : `Ver ${totalVisibles} ${totalVisibles === 1 ? 'producto' : 'productos'}`}
           </button>
         </div>
       </aside>

@@ -43,7 +43,7 @@ const fichasMock = [
     variantes: [
       { id: 1, nombre: 'Amatista', precio: '45.00', disponible: true, propiedades: 'Se le atribuye calma, intuición y claridad mental.', intenciones: ['Calma y paz interior', 'Claridad mental', 'Intuición y conexión espiritual'] },
       { id: 2, nombre: 'Cuarzo rosa', precio: '40.00', disponible: true, propiedades: 'Se le atribuye amor propio y armonía en los vínculos.', intenciones: ['Amor propio y sanación', 'Equilibrio emocional'] },
-      { id: 3, nombre: 'Turmalina negra', precio: '40.00', disponible: false, propiedades: 'Se le atribuye protección y enraizamiento.' },
+      { id: 3, nombre: 'Turmalina negra', precio: '40.00', disponible: false, propiedades: 'Se le atribuye protección y enraizamiento.', intenciones: ['Protección'] },
     ],
     imagenes: [
       foto(1, { es_principal: true }),
@@ -83,7 +83,7 @@ const fichasMock = [
     descripcion: 'Drusa de amatista en bruto, ideal para tu altar o escritorio.',
     material: 'Amatista natural', medidas: '8 × 6 cm aprox.', peso_g: '350.00',
     tiene_variantes: false,
-    variantes: [{ id: 7, nombre: 'Única', precio: '120.00', disponible: true, propiedades: 'Se le atribuye calma y protección del espacio.' }],
+    variantes: [{ id: 7, nombre: 'Única', precio: '120.00', disponible: true, propiedades: 'Se le atribuye calma y protección del espacio.', intenciones: ['Calma y paz interior', 'Protección'] }],
     imagenes: [{ url: '/foto-que-no-existe.webp', es_principal: true, es_referencia_escala: false }],
   },
   {
@@ -117,8 +117,8 @@ const fichasMock = [
     material: 'Cuarzo natural', medidas: 'Elástica, talla única', peso_g: null,
     tiene_variantes: true,
     variantes: [
-      { id: 11, nombre: 'Cuarzo rosa', precio: '45.00', disponible: false, propiedades: 'Se le atribuye amor propio.' },
-      { id: 12, nombre: 'Pirita', precio: '45.00', disponible: false, propiedades: 'Se le atribuye abundancia.' },
+      { id: 11, nombre: 'Cuarzo rosa', precio: '45.00', disponible: false, propiedades: 'Se le atribuye amor propio.', intenciones: ['Amor propio y sanación'] },
+      { id: 12, nombre: 'Pirita', precio: '45.00', disponible: false, propiedades: 'Se le atribuye abundancia.', intenciones: ['Abundancia y prosperidad', 'Buena suerte'] },
     ],
     imagenes: [foto(8, { es_principal: true })],
   },
@@ -130,7 +130,7 @@ const fichasMock = [
     descripcion: 'Colgante de punta de cuarzo cristal con cadena de plata 925.',
     material: 'Plata 925 y cuarzo cristal', medidas: 'Cadena de 45 cm', peso_g: null,
     tiene_variantes: false,
-    variantes: [{ id: 13, nombre: 'Única', precio: '35.00', disponible: true, propiedades: 'Se le atribuye claridad y energía.' }],
+    variantes: [{ id: 13, nombre: 'Única', precio: '35.00', disponible: true, propiedades: 'Se le atribuye claridad y energía.', intenciones: ['Claridad mental', 'Energía y vitalidad'] }],
     imagenes: [foto(9, { es_principal: true })],
   },
   {
@@ -140,7 +140,7 @@ const fichasMock = [
     descripcion: 'Pulsera elástica de cuentas de ojo de tigre de 8 mm.',
     material: 'Ojo de tigre natural', medidas: 'Elástica, talla única', peso_g: null,
     tiene_variantes: false,
-    variantes: [{ id: 15, nombre: 'Única', precio: '25.00', disponible: true, propiedades: 'Se le atribuye protección y confianza.' }],
+    variantes: [{ id: 15, nombre: 'Única', precio: '25.00', disponible: true, propiedades: 'Se le atribuye protección y confianza.', intenciones: ['Protección', 'Confianza y fuerza personal'] }],
     imagenes: [foto(10, { es_principal: true })],
   },
   {
@@ -165,6 +165,20 @@ const categoriasMock = [
   { id: 6, nombre: 'Inciensos y limpieza energética' },
   { id: 7, nombre: 'Decoración y amuletos' },
 ];
+
+// Las 13 intenciones confirmadas por la propietaria el 09/11/2026 (HU008, AKASH-178).
+const intencionesMock = [
+  'Protección', 'Abundancia y prosperidad', 'Amor propio y sanación', 'Calma y paz interior',
+  'Claridad mental', 'Comunicación', 'Creatividad y motivación', 'Energía y vitalidad',
+  'Equilibrio emocional', 'Intuición y conexión espiritual', 'Buena suerte',
+  'Transformación personal', 'Confianza y fuerza personal',
+].map((nombre, i) => ({ id: i + 1, nombre }));
+
+// Igual que el backend: el producto entra si al menos una piedra tiene la intención.
+function tieneIntencionMock(ficha, intencionId) {
+  const intencion = intencionesMock.find((i) => i.id === intencionId);
+  return Boolean(intencion) && ficha.variantes.some((v) => (v.intenciones ?? []).includes(intencion.nombre));
+}
 
 // La ficha simulada se arma igual que la del backend (foto_principal incluida).
 function aFicha(f) {
@@ -268,13 +282,32 @@ const noDisponible = () => new ApiError('Producto no encontrado', 404);
 /* ------------------------------------------------------------------ */
 
 // `signal` permite cancelar la petición (por ejemplo, si la clienta sale de la página).
-export async function listarCatalogo({ signal } = {}) {
+// Con `intencionId` (HU008) devuelve solo los productos que tienen al menos una piedra con esa intención.
+export async function listarCatalogo({ signal, intencionId } = {}) {
   if (USE_MOCK) {
     const escenario = await simularRed();
     if (escenario === 'vacio') return [];
-    return normalizarLista(fichasMock.map(aTarjeta));
+    const fichas = intencionId ? fichasMock.filter((f) => tieneIntencionMock(f, intencionId)) : fichasMock;
+    return normalizarLista(fichas.map(aTarjeta));
   }
-  return normalizarLista(await pedirPublico('/catalogo', { signal }));
+  const ruta = intencionId ? `/catalogo?intencion_id=${encodeURIComponent(intencionId)}` : '/catalogo';
+  return normalizarLista(await pedirPublico(ruta, { signal }));
+}
+
+// Intenciones activas con cuántos productos tiene cada una (HU008).
+// El backend las devuelve ordenadas por nombre: [{ id, nombre, productos }].
+export async function listarIntenciones({ signal } = {}) {
+  if (USE_MOCK) {
+    await simularRed();
+    return intencionesMock
+      .map((i) => ({ ...i, productos: fichasMock.filter((f) => esListable(f) && tieneIntencionMock(f, i.id)).length }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  }
+  const data = await pedirPublico('/catalogo/intenciones', { signal });
+  if (!Array.isArray(data)) throw new ApiError('Respuesta inesperada de intenciones.', 0);
+  return data
+    .filter((i) => Number.isInteger(i?.id) && typeof i.nombre === 'string' && i.nombre.trim() !== '')
+    .map((i) => ({ id: i.id, nombre: i.nombre.trim(), productos: Number.isInteger(i.productos) ? i.productos : 0 }));
 }
 
 // Categorías con algún producto publicado, en su orden (HU007).
