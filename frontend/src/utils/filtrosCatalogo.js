@@ -1,4 +1,6 @@
 // Filtros del catálogo público (HU007): categoría, rango de precio y "solo disponibles".
+// HU008: intención ("¿Qué buscas?"). Esta se filtra en el backend, porque la tarjeta
+// del catálogo no trae las intenciones de cada piedra; lo demás se filtra aquí.
 //
 // Todo es lógica pura (sin React): recibe datos y devuelve datos. Así se puede probar
 // sin abrir el navegador y la página solo se encarga de mostrar.
@@ -7,8 +9,10 @@
 // Con decimales, JavaScript falla en cuentas simples (0.1 + 0.2 = 0.30000000000000004);
 // con enteros las comparaciones son exactas.
 
-// Nombres de los parámetros en la URL: /catalogo?categoria=pulseras&precio_min=20&precio_max=50&disponibles=1
+// Nombres de los parámetros en la URL:
+// /catalogo?intencion=proteccion&categoria=pulseras&precio_min=20&precio_max=50&disponibles=1
 export const PARAM = {
+  intencion: 'intencion',
   categoria: 'categoria',
   precioMin: 'precio_min',
   precioMax: 'precio_max',
@@ -45,6 +49,19 @@ export function buscarCategoria(categorias, valor) {
   if (!valor) return null;
   const buscado = slug(valor);
   return categorias.find((c) => slug(c.nombre) === buscado || String(c.id) === String(valor).trim()) ?? null;
+}
+
+// Igual que la categoría, pero para la intención (HU008): "proteccion" o el id.
+export function buscarIntencion(intenciones, valor) {
+  return buscarCategoria(intenciones, valor);
+}
+
+// E7: otras intenciones que SÍ tienen productos, las de más productos primero.
+export function sugerirIntenciones(intenciones, idActual, cantidad = 4) {
+  return intenciones
+    .filter((i) => i.id !== idActual && i.productos > 0)
+    .sort((a, b) => b.productos - a.productos || a.nombre.localeCompare(b.nombre, 'es'))
+    .slice(0, cantidad);
 }
 
 /* ------------------------------------------------------------------ */
@@ -133,7 +150,10 @@ export function cumplePrecio(producto, min, max) {
 
 // Lee los filtros de la URL y los valida. La URL la puede escribir cualquiera
 // (un enlace viejo, un enlace editado a mano), así que nunca se confía en ella.
-export function leerFiltros(searchParams, categorias) {
+export function leerFiltros(searchParams, categorias, intenciones = []) {
+  const valorIntencion = searchParams.get(PARAM.intencion)?.trim() || null;
+  const intencion = buscarIntencion(intenciones, valorIntencion);
+
   const valorCategoria = searchParams.get(PARAM.categoria)?.trim() || null;
   const categoria = buscarCategoria(categorias, valorCategoria);
 
@@ -142,6 +162,9 @@ export function leerFiltros(searchParams, categorias) {
   const rango = validarRango(textoMin, textoMax);
 
   return {
+    intencion, // { id, nombre, productos } o null (HU008)
+    // Solo se puede decir que no existe si la lista de intenciones llegó.
+    intencionDesconocida: valorIntencion && !intencion && intenciones.length > 0 ? valorIntencion : null,
     categoria, // { id, nombre } o null
     categoriaDesconocida: valorCategoria && !categoria ? valorCategoria : null, // E7
     // Si el precio de la URL no es válido, se ignoran los dos extremos y se avisa.
@@ -163,6 +186,7 @@ export function escribirFiltros(searchParams, cambios) {
     else nuevos.set(clave, String(valor));
   };
 
+  if (cambios.intencion !== undefined) poner(PARAM.intencion, cambios.intencion ? slug(cambios.intencion.nombre) : null);
   if (cambios.categoria !== undefined) poner(PARAM.categoria, cambios.categoria ? slug(cambios.categoria.nombre) : null);
   if (cambios.precioMin !== undefined) poner(PARAM.precioMin, centimosATexto(cambios.precioMin));
   if (cambios.precioMax !== undefined) poner(PARAM.precioMax, centimosATexto(cambios.precioMax));
@@ -219,5 +243,5 @@ export function textoRango(min, max) {
 }
 
 export function hayFiltros(filtros) {
-  return Boolean(filtros.categoria || filtros.precioMin != null || filtros.precioMax != null || filtros.soloDisponibles);
+  return Boolean(filtros.intencion || filtros.categoria || filtros.precioMin != null || filtros.precioMax != null || filtros.soloDisponibles);
 }

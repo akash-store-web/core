@@ -282,6 +282,46 @@
   opacity: 0.55;
 }
 
+/* ----- Intención (HU008) ----- */
+.Filtros__verMas {
+  min-height: 40px;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--color-marron);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.Filtros__verMas:focus-visible {
+  outline: 2px solid var(--color-marron);
+  outline-offset: 2px;
+}
+
+.Filtros__nota {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-negro-calido);
+}
+
+/* E7: sugerencias de otras intenciones dentro del aviso */
+.Catalogo__sugerencias {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 16px;
+  list-style: none;
+}
+
+.Catalogo__sugerencias .Filtros__cantidad {
+  margin-left: 0;
+}
+
 /* ----- Precio ----- */
 .Filtros__atajos {
   display: flex;
