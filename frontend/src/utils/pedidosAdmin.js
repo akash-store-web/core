@@ -82,3 +82,23 @@ export function enlaceChatClienta({ telefono, nombre, numero }) {
 
 // El backend guarda "Única" en los productos sin variantes: no aporta nada en pantalla.
 export const nombreVariante = (variante) => (variante && variante !== 'Única' ? variante : null);
+
+
+// HU018: a qué estados puede pasar un pedido (misma tabla que el backend) y cómo se llama cada botón.
+export const TRANSICIONES = {
+  pendiente: ['confirmado', 'cancelado'],
+  confirmado: ['enviado', 'cancelado'],
+  enviado: ['entregado'],
+  entregado: [],
+  cancelado: [],
+};
+
+const TEXTO_ACCION = {
+  confirmado: 'Confirmar venta',
+  enviado: 'Marcar como enviado',
+  entregado: 'Marcar como entregado',
+  cancelado: 'Cancelar pedido',
+};
+
+export const accionesDisponibles = (estado) =>
+  (TRANSICIONES[estado] ?? []).map((valor) => ({ valor, texto: TEXTO_ACCION[valor] }));

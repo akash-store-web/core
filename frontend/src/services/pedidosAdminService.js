@@ -1,5 +1,6 @@
 import { USE_MOCK } from './config.js';
 import { ApiError, apiFetch } from './http.js';
+import { TRANSICIONES } from '../utils/pedidosAdmin.js';
 
 // Pedidos en el PANEL (HU017). Usa apiFetch: envía el token y, ante un 401, cierra la sesión (E6).
 
@@ -116,4 +117,30 @@ export async function obtenerPedidoAdmin(id) {
 export async function contarPedidosPendientes() {
   const pendientes = await listarPedidosAdmin({ estado: 'pendiente' });
   return Array.isArray(pendientes) ? pendientes.length : 0;
+}
+
+
+// PATCH /admin/pedidos/{id}/estado → devuelve el detalle actualizado (HU018).
+// 409 si el cambio no está permitido; 409 con detail objeto si no alcanza el stock al confirmar.
+// En el mock, agrega ?escenario=sinstock a la URL del detalle para ver ese error.
+export async function cambiarEstadoPedido(id, nuevoEstado) {
+  if (USE_MOCK) {
+    const escenario = await simular();
+    const pedido = obtenerMock().find((p) => p.id === Number(id));
+    if (!pedido) throw new ApiError('Pedido no encontrado', 404);
+    if (!(TRANSICIONES[pedido.estado] ?? []).includes(nuevoEstado)) {
+      throw new ApiError(`No se puede pasar de ${pedido.estado} a ${nuevoEstado} (pedido ${pedido.numero})`, 409);
+    }
+    if (escenario === 'sinstock' && nuevoEstado === 'confirmado') {
+      const item = pedido.items[0];
+      throw new ApiError('Ocurrió un error inesperado.', 409, {
+        mensaje: `No hay stock suficiente para confirmar el pedido ${pedido.numero}`,
+        items: [{ variante_id: item.variante_id, producto: item.producto, variante: item.variante, solicitada: item.cantidad, disponible: 0 }],
+      });
+    }
+    pedido.estado = nuevoEstado;
+    pedido.historial.push({ estado: nuevoEstado, fecha: new Date().toISOString(), usuario: 'propietaria@ejemplo.com' });
+    return structuredClone(pedido);
+  }
+  return apiFetch(`/admin/pedidos/${id}/estado`, { method: 'PATCH', body: { estado: nuevoEstado } });
 }

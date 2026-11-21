@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import AdminLayout from '../../../components/AdminLayout.jsx';
 import { esIdValido } from '../../../services/catalogoService.js';
-import { obtenerPedidoAdmin } from '../../../services/pedidosAdminService.js';
+import { cambiarEstadoPedido, obtenerPedidoAdmin } from '../../../services/pedidosAdminService.js';
 import { soles } from '../../../utils/formato.js';
-import { enlaceChatClienta, etiquetaEstado, fechaHoraLima, nombreVariante } from '../../../utils/pedidosAdmin.js';
+import { accionesDisponibles, enlaceChatClienta, etiquetaEstado, fechaHoraLima, nombreVariante } from '../../../utils/pedidosAdmin.js';
 import EstadoPedido from './EstadoPedido.jsx';
 import './Pedidos.css';
 
@@ -29,6 +29,9 @@ function DetallePedido({ id }) {
   const [estado, setEstado] = useState(() => ({ fase: esIdValido(id) ? 'cargando' : 'noExiste', pedido: null }));
   const [lento, setLento] = useState(false);
   const [intento, setIntento] = useState(0);
+  const [cambiando, setCambiando] = useState(false);
+  const [errorEstado, setErrorEstado] = useState(null);
+  const [confirmarCancelar, setConfirmarCancelar] = useState(false);
 
   useEffect(() => {
     if (!esIdValido(id)) return undefined;
@@ -60,6 +63,33 @@ function DetallePedido({ id }) {
     setEstado({ fase: 'cargando', pedido: null });
     setLento(false);
     setIntento((n) => n + 1);
+  }
+
+  // HU018: cambia el estado. Con 409 muestra el motivo (y los productos sin stock) y recarga el pedido.
+  async function cambiarEstado(nuevo) {
+    if (cambiando) return;
+    setCambiando(true);
+    setErrorEstado(null);
+    setConfirmarCancelar(false);
+    try {
+      const actualizado = await cambiarEstadoPedido(id, nuevo);
+      setEstado({ fase: 'listo', pedido: actualizado });
+    } catch (error) {
+      const detalle = error.detail && typeof error.detail === 'object' && !Array.isArray(error.detail) ? error.detail : null;
+      setErrorEstado({
+        mensaje: detalle ? detalle.mensaje : error.message || 'No se pudo cambiar el estado. Intenta de nuevo.',
+        items: detalle?.items ?? [],
+      });
+      if (error.status === 409) {
+        try {
+          setEstado({ fase: 'listo', pedido: await obtenerPedidoAdmin(id) });
+        } catch {
+          // si no se puede recargar, se queda lo que ya se veía
+        }
+      }
+    } finally {
+      setCambiando(false);
+    }
   }
 
   const enlaceVolver = (
@@ -104,6 +134,9 @@ function DetallePedido({ id }) {
 
   const { pedido } = estado;
   const { clienta } = pedido;
+  const acciones = accionesDisponibles(pedido.estado);
+  const siguientes = acciones.filter((a) => a.valor !== 'cancelado');
+  const puedeCancelar = acciones.some((a) => a.valor === 'cancelado');
   const delivery = pedido.modalidad_entrega === 'delivery';
   const enlaceWhatsApp = enlaceChatClienta({ telefono: clienta.telefono, nombre: clienta.nombre, numero: pedido.numero });
   const unidades = pedido.items.reduce((suma, item) => suma + item.cantidad, 0);
@@ -120,6 +153,62 @@ function DetallePedido({ id }) {
         </div>
         <EstadoPedido estado={pedido.estado} />
       </header>
+
+      {errorEstado && (
+        <div className="PedidoAdmin__error" role="alert">
+          <p>{errorEstado.mensaje}</p>
+          {errorEstado.items.length > 0 && (
+            <ul>
+              {errorEstado.items.map((it) => (
+                <li key={it.variante_id}>
+                  {it.producto}
+                  {nombreVariante(it.variante) ? ` (${it.variante})` : ''}: pidió {it.solicitada}, hay {it.disponible}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {acciones.length > 0 && (
+        <section className="PedidoAdmin__acciones" aria-label="Cambiar el estado del pedido">
+          {confirmarCancelar ? (
+            <>
+              <p className="PedidoAdmin__aviso">
+                ¿Cancelar el pedido {pedido.numero}?
+                {pedido.estado === 'confirmado' ? ' El stock descontado se devolverá.' : ''} Esta acción no se puede deshacer.
+              </p>
+              <button type="button" className="Pedidos__boton" disabled={cambiando} onClick={() => cambiarEstado('cancelado')}>
+                {cambiando ? 'Cancelando…' : 'Sí, cancelar pedido'}
+              </button>
+              <button type="button" className="Pedidos__boton Pedidos__boton--secundario" disabled={cambiando} onClick={() => setConfirmarCancelar(false)}>
+                No, volver
+              </button>
+            </>
+          ) : (
+            <>
+              {siguientes.map((accion) => (
+                <button key={accion.valor} type="button" className="Pedidos__boton" disabled={cambiando} onClick={() => cambiarEstado(accion.valor)}>
+                  {cambiando ? 'Guardando…' : accion.texto}
+                </button>
+              ))}
+              {puedeCancelar && (
+                <button
+                  type="button"
+                  className="Pedidos__boton Pedidos__boton--secundario"
+                  disabled={cambiando}
+                  onClick={() => {
+                    setErrorEstado(null);
+                    setConfirmarCancelar(true);
+                  }}
+                >
+                  Cancelar pedido
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      )}
 
       <div className="PedidoAdmin__grilla">
         {/* Productos con variante, cantidad y precio del momento del pedido */}
