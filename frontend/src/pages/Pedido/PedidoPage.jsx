@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import AvisoPiezaNatural from '../../components/Carrito/AvisoPiezaNatural.jsx';
 import { useCarrito } from '../../context/carritoContext.js';
 import { aplicarRevision, cambiarCantidad, obtenerCarrito, quitarDelCarrito, vaciarCarrito, validarCarrito } from '../../services/carritoService.js';
 import { PLACEHOLDER } from '../../services/catalogoService.js';
 import { WHATSAPP_NUMBER } from '../../services/config.js';
 import { listarDistritosEnvio } from '../../services/envioService.js';
 import { guardarUltimoPedido, leerUltimoPedido, registrarPedido } from '../../services/pedidosService.js';
-import { aCentimos, combinarConRevision, resumirCarrito } from '../../utils/carrito.js';
+import { aCentimos, avisoPiezaNatural, combinarConRevision, resumirCarrito } from '../../utils/carrito.js';
 import { soles } from '../../utils/formato.js';
 import { NOMBRE_MAX, TEXTO_MAX, armarCuerpoPedido, costoEnvioEstimado, validarDatosPedido } from '../../utils/pedido.js';
 import { armarMensajePedido, enlaceWhatsApp } from '../../utils/whatsapp.js';
@@ -82,7 +83,7 @@ function FormularioPedido({ onConfirmado }) {
 
   // Revisión del carrito con el servidor. `firma` dice para qué contenido es la revisión:
   // si el carrito cambió (por ejemplo, desde el panel), se vuelve a revisar sola.
-  const [revision, setRevision] = useState({ firma: null, porVariante: {}, error: false });
+  const [revision, setRevision] = useState({ firma: null, porVariante: {}, avisoTexto: null, error: false });
   const [intentoRevision, setIntentoRevision] = useState(0);
   const firma = firmaDe(items);
 
@@ -108,7 +109,12 @@ function FormularioPedido({ onConfirmado }) {
       .then((respuesta) => {
         if (controller.signal.aborted) return;
         aplicarRevision(respuesta); // E7: el precio guardado pasa a ser el del servidor
-        setRevision({ firma: firmaDe(porRevisar), porVariante: indexar(respuesta.items), error: false });
+        setRevision({
+          firma: firmaDe(porRevisar),
+          porVariante: indexar(respuesta.items),
+          avisoTexto: respuesta.aviso_pieza_natural?.texto ?? null, // HU006
+          error: false,
+        });
       })
       .catch((error) => {
         if (controller.signal.aborted) return;
@@ -121,6 +127,7 @@ function FormularioPedido({ onConfirmado }) {
   const revisando = revision.firma !== firma;
   const lineas = combinarConRevision(items, revision.porVariante);
   const resumen = resumirCarrito(lineas);
+  const avisoNatural = avisoPiezaNatural(lineas, revision.avisoTexto); // HU006 Esc. 2: antes de confirmar
   const distrito = distritos.lista.find((d) => d.id === Number(datos.distritoId));
   const envio = costoEnvioEstimado(datos.modalidad, distrito);
   const totalCentimos = resumen.totalCentimos + aCentimos(envio);
@@ -459,6 +466,8 @@ function FormularioPedido({ onConfirmado }) {
               <dd>{soles(totalCentimos / 100)}</dd>
             </div>
           </dl>
+
+          <AvisoPiezaNatural aviso={avisoNatural} />
 
           {aviso && (
             <p ref={avisoRef} className="Pedido__aviso Pedido__aviso--error" role="alert" tabIndex={-1}>
