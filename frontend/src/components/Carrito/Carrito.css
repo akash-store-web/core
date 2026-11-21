@@ -314,6 +314,16 @@ html:has(.CarritoPanel[open]) {
   margin-top: 12px;
 }
 
+.CarritoPanel__ultimo {
+  margin-top: 16px;
+  font-size: 14px;
+}
+
+.CarritoPanel__ultimo a {
+  color: var(--color-marron);
+  font-weight: 600;
+}
+
 /* ----- Línea del carrito ----- */
 .Linea {
   display: grid;

@@ -8,14 +8,14 @@ import {
   quitarDelCarrito,
   validarCarrito,
 } from '../../services/carritoService.js';
+import { leerUltimoPedido } from '../../services/pedidosService.js';
 import { combinarConRevision, contarUnidades, resumirCarrito, revisionTrasBajar } from '../../utils/carrito.js';
 import { soles } from '../../utils/formato.js';
 import LineaCarrito from './LineaCarrito.jsx';
 import './Carrito.css';
 
-// Ruta del formulario del pedido (HU010). Mientras no exista, «Continuar» valida el carrito
-// y muestra un aviso. Cuando la página esté lista, basta con poner aquí su ruta (por ejemplo '/pedido').
-const RUTA_PEDIDO = null;
+// Ruta del formulario del pedido (HU010). Con null, «Continuar» solo valida y muestra un aviso.
+const RUTA_PEDIDO = '/pedido';
 
 const indexar = (items = []) => Object.fromEntries(items.map((item) => [item.variante_id, item]));
 
@@ -82,6 +82,7 @@ function ContenidoCarrito() {
   // fase: 'inicial' | 'validando' | 'bloqueado' | 'precios' | 'listo' | 'error'
   const [continuar, setContinuar] = useState('inicial');
   const [errorGuardar, setErrorGuardar] = useState(null);
+  const [ultimoPedido] = useState(leerUltimoPedido); // HU010 Esc. 3: con el carrito vacío se ve el número
 
   // Tarea 2: al abrir el panel se revalida todo el carrito con el servidor
   // (agotados, despublicados, precios cambiados y datos manipulados).
@@ -212,6 +213,14 @@ function ContenidoCarrito() {
           <Link to="/catalogo" className="CarritoPanel__continuar" onClick={cerrar}>
             Ver el catálogo
           </Link>
+          {ultimoPedido && (
+            <p className="CarritoPanel__ultimo">
+              Tu último pedido: <strong>{ultimoPedido.pedido.numero}</strong>.{' '}
+              <Link to="/pedido" onClick={cerrar}>
+                Ver pedido
+              </Link>
+            </p>
+          )}
         </div>
       ) : (
         <>

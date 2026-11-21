@@ -80,6 +80,7 @@ function guardarCarrito(items) {
     ?escenario=seagota       → todo lo que se valida aparece agotado (HU028 E7 / HU009 E8)
     ?escenario=despublicado  → la variante 2 (Cuarzo rosa) ya no está publicada (E8)
     ?escenario=preciocambio  → todos los precios subieron S/ 5.00 (E9)
+    ?escenario=error         → servidor no disponible (aparece «Reintentar»)
   Stock simulado: 2 unidades del Cuarzo rosa (id 2, para el Esc. 3) y 3 del resto.
 */
 const stockMock = (varianteId) => (varianteId === 2 ? 2 : 3);
@@ -87,6 +88,7 @@ const stockMock = (varianteId) => (varianteId === 2 ? 2 : 3);
 async function validarMock(items) {
   const escenario = new URLSearchParams(window.location.search).get('escenario');
   await esperar(500);
+  if (escenario === 'error') throw new ApiError('Error simulado', 503);
 
   // Igual que el backend: la misma variante en varias líneas se suma.
   const pedidas = new Map();
@@ -265,6 +267,11 @@ export async function cambiarCantidad(varianteId, nueva) {
 // Esc. 2: eliminar una línea.
 export function quitarDelCarrito(varianteId) {
   guardarCarrito(obtenerCarrito().filter((i) => i.variante_id !== varianteId));
+}
+
+// HU010 Esc. 3: el pedido ya se registró → el carrito queda vacío.
+export function vaciarCarrito() {
+  guardarCarrito([]);
 }
 
 // E9: después de validar, el precio guardado pasa a ser el vigente (así el aviso no se repite
