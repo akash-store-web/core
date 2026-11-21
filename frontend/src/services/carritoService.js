@@ -1,7 +1,7 @@
 import { USE_MOCK } from './config.js';
 import { ApiError } from './http.js';
 import { buscarVarianteMock, pedirPublico } from './catalogoService.js';
-import { MAX_LINEAS, MAX_POR_LINEA, normalizarCarrito, validarCantidad } from '../utils/carrito.js';
+import { AVISO_PIEZA_NATURAL_DEFECTO, MAX_LINEAS, MAX_POR_LINEA, normalizarCarrito, validarCantidad } from '../utils/carrito.js';
 
 // El carrito vive en el navegador (HU009, Esc. 4): sobrevive a cerrar la pestaña en el mismo
 // dispositivo. El servidor solo valida cada ítem contra el stock y el precio reales (E10).
@@ -141,11 +141,13 @@ async function validarMock(items) {
     };
   });
 
+  // HU006: como el backend, un solo aviso con los productos naturales sin repetir (o null)
+  const naturales = [...new Set(resultado.filter((i) => i.es_pieza_natural).map((i) => i.producto))];
   return {
     valido: resultado.every((i) => i.estado === 'ok'),
     items: resultado,
     total: resultado.reduce((suma, i) => suma + Number(i.subtotal), 0).toFixed(2),
-    aviso_pieza_natural: null,
+    aviso_pieza_natural: naturales.length > 0 ? { texto: AVISO_PIEZA_NATURAL_DEFECTO, productos: naturales } : null,
   };
 }
 

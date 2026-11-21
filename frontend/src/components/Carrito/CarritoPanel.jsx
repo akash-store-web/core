@@ -9,8 +9,9 @@ import {
   validarCarrito,
 } from '../../services/carritoService.js';
 import { leerUltimoPedido } from '../../services/pedidosService.js';
-import { combinarConRevision, contarUnidades, resumirCarrito, revisionTrasBajar } from '../../utils/carrito.js';
+import { avisoPiezaNatural, combinarConRevision, contarUnidades, resumirCarrito, revisionTrasBajar } from '../../utils/carrito.js';
 import { soles } from '../../utils/formato.js';
+import AvisoPiezaNatural from './AvisoPiezaNatural.jsx';
 import LineaCarrito from './LineaCarrito.jsx';
 import './Carrito.css';
 
@@ -113,6 +114,7 @@ function ContenidoCarrito() {
   const lineas = combinarConRevision(items, revision.porVariante);
   const resumen = resumirCarrito(lineas);
   const unidades = contarUnidades(items);
+  const avisoNatural = avisoPiezaNatural(lineas, revision.avisoNatural?.texto); // HU006
 
   function reintentar() {
     setRevision((previa) => ({ ...previa, fase: 'revisando' }));
@@ -264,13 +266,8 @@ function ContenidoCarrito() {
               ))}
             </ul>
 
-            {/* HU006: un solo aviso de pieza natural, como texto plano */}
-            {revision.avisoNatural && (
-              <p className="CarritoPanel__nota">
-                {revision.avisoNatural.texto}
-                {revision.avisoNatural.productos?.length > 0 && ` (${revision.avisoNatural.productos.join(', ')})`}
-              </p>
-            )}
+            {/* HU006 Esc. 2 / E6: un solo aviso, con los productos a los que aplica */}
+            <AvisoPiezaNatural aviso={avisoNatural} />
           </div>
 
           <footer className="CarritoPanel__pie">

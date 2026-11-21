@@ -200,11 +200,36 @@ html:has(.CarritoPanel[open]) {
   cursor: pointer;
 }
 
-.CarritoPanel__nota {
+/* ----- HU006: aviso de pieza natural (carrito y pedido) ----- */
+.AvisoNatural {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   margin-top: 12px;
-  font-size: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-marmol-beige);
+  border-left: 3px solid var(--color-marron);
+  border-radius: 8px;
+  background-color: var(--color-marmol-claro);
+  color: var(--color-negro-calido);
+}
+
+.AvisoNatural__icono {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-marron);
+}
+
+.AvisoNatural__texto {
+  font-size: 13px;
   line-height: 1.5;
-  opacity: 0.8;
+}
+
+.AvisoNatural__productos {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 /* Pie: total y botones */

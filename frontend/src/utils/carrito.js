@@ -8,6 +8,12 @@
 export const MAX_POR_LINEA = 10; // E6: para más unidades, la clienta escribe por WhatsApp
 export const MAX_LINEAS = 50; // el backend acepta hasta 50 líneas por carrito
 
+// HU006 E4: el mismo texto por defecto que el backend (AVISO_PIEZA_NATURAL_DEFECTO en config.py).
+// Solo se usa si el servidor no manda uno; lo normal es mostrar el texto que viene del servidor.
+export const AVISO_PIEZA_NATURAL_DEFECTO =
+  'Cada pieza es natural y única: la que recibas puede variar en forma, tamaño y tono respecto de la fotografía.';
+const AVISO_MAXIMO = 300;
+
 // Estados del servidor que sacan la línea del total y no dejan continuar (E8)
 const FUERA_DEL_TOTAL = ['agotado', 'no_disponible'];
 // Estados en los que solo se puede comprar una parte (Esc. 3 / E6)
@@ -133,6 +139,7 @@ export function combinarConRevision(items, revision = {}) {
       estado,
       cantidadMaxima,
       cuenta,
+      esPiezaNatural: Boolean(servidor?.es_pieza_natural), // HU006: lo dice el servidor, no el navegador
       precioCambio: Boolean(servidor?.precio_cambio),
       precioAnterior: servidor?.precio_anterior ?? null,
       subtotalCentimos: aCentimos(precio) * unidadesCobradas,
@@ -165,5 +172,24 @@ export function revisionTrasBajar(servidor, nuevaCantidad) {
     ...servidor,
     cantidad: nuevaCantidad,
     ...(alcanza ? { estado: 'ok', mensaje: null } : {}),
+  };
+}
+
+/*
+  HU006 Esc. 2 / E5 / E6: aviso de pieza natural para el carrito y el pedido.
+  - Una sola vez, con los productos a los que aplica (sin repetir el nombre si hay varias piedras).
+  - La lista sale de las líneas ACTUALES: si la clienta quita la pieza, el aviso deja de nombrarla
+    sin esperar otra validación. Las líneas agotadas o retiradas no cuentan (no se van a comprar).
+  - Si el servidor dejó de marcar el producto como natural (E5), su línea ya no trae la marca.
+  Devuelve { texto, productos } o null si no aplica.
+*/
+export function avisoPiezaNatural(lineas, textoServidor) {
+  const productos = [...new Set(lineas.filter((l) => l.esPiezaNatural && l.cuenta).map((l) => l.producto))];
+  if (productos.length === 0) return null;
+
+  const texto = String(textoServidor ?? '').trim();
+  return {
+    texto: texto && texto.length <= AVISO_MAXIMO ? texto : AVISO_PIEZA_NATURAL_DEFECTO,
+    productos,
   };
 }
