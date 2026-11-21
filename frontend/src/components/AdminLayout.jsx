@@ -16,6 +16,7 @@ const SECCIONES = [
     enlaces: [
       { to: '/adminPanel', texto: 'Productos', icono: 'productos', activoSi: (ruta) => ruta === '/adminPanel' || ruta.startsWith('/adminPanel/productos') },
       { to: '/adminPanel/pedidos', texto: 'Pedidos', icono: 'pedidos', conContador: true },
+      { to: '/adminPanel/ventas', texto: 'Ventas del mes', icono: 'ventas' },
     ],
   },
   {
@@ -33,6 +34,7 @@ const ICONOS = {
   pedidos: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3Z M9 8h6 M9 12h6',
   compras: 'M3 4h3l2 11h11l2-8H7 M10 20a1 1 0 1 0 0-.01 M17 20a1 1 0 1 0 0-.01',
   envios: 'M3 7h11v9H3Z M14 10h4l3 3v3h-7 M7 19a2 2 0 1 0 0-.01 M17 19a2 2 0 1 0 0-.01',
+  ventas: 'M5 20V12 M12 20V5 M19 20v-9',
   tienda: 'M14 4h6v6 M20 4l-9 9 M18 14v5H5V6h5',
   salir: 'M15 4h4v16h-4 M10 8l-4 4 4 4 M6 12h10',
 };

@@ -5,6 +5,7 @@ import RestablecerContrasena from "./pages/admin/RestablecerContrasena/Restablec
 import PanelAdmin from './pages/admin/PanelAdmin/PanelAdmin.jsx';
 import ProductoForm from './pages/admin/ProductoForm/ProductoForm.jsx';
 import EnviosAdmin from './pages/admin/Envios/EnviosAdmin.jsx';
+import VentasAdmin from './pages/admin/Ventas/VentasAdmin.jsx';
 import ComprasAdmin from './pages/admin/Compras/ComprasAdmin.jsx';
 import CompraForm from './pages/admin/Compras/CompraForm.jsx';
 import PedidosAdmin from './pages/admin/Pedidos/PedidosAdmin.jsx';
@@ -92,6 +93,14 @@ function App() {
         element={
           <ProtectedRoute>
             <EnviosAdmin />
+          </ProtectedRoute>
+        }
+      />
+    <Route
+        path="/adminPanel/ventas"
+        element={
+          <ProtectedRoute>
+            <VentasAdmin />
           </ProtectedRoute>
         }
       />

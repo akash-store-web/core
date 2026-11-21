@@ -1,0 +1,49 @@
+.VentasSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.VentasTarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  list-style: none;
+}
+
+.VentasTarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--color-marmol-beige);
+  border-radius: 8px;
+  background-color: var(--color-blanco);
+}
+
+.VentasTarjeta strong {
+  font-size: 22px;
+}
+
+.VentasTarjeta--total {
+  border-width: 2px;
+}
+
+.VentasEtiqueta {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.VentasComparacion {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.VentasAnterior {
+  font-size: 14px;
+}
