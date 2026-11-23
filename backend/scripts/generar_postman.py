@@ -132,7 +132,8 @@ items = [
                  'pm.test("Trae valido y total", () => { const d = pm.response.json(); pm.expect(d).to.have.property("valido"); pm.expect(d.total).to.be.a("string"); });'),
             publico=True),
         req("Registrar pedido (WhatsApp)", "POST", "/pedidos",
-            {"nombre": "[PRUEBA] QA", "celular": "900000000", "distrito_id": "{{distrito_id}}",
+            {"nombres": "Prueba", "apellido_paterno": "Postman", "apellido_materno": "Qa",
+             "celular": "900000000", "distrito_id": "{{distrito_id}}",
              "modalidad_entrega": "delivery", "direccion": "Dirección de prueba",
              "items": [{"variante_id": "{{variante_id}}", "cantidad": 1}]},
             "HU010. Registra el pedido «pendiente» (P-0001…) sin descontar stock. 201 = nuevo; 200 con "

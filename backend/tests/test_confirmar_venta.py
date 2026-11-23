@@ -223,8 +223,9 @@ def test_pedido_de_la_web_se_confirma(client, auth, tienda):
     """Flujo completo: la clienta lo envía por WhatsApp (HU010) y la propietaria lo confirma."""
     zona = client.post("/admin/zonas-envio", json={"nombre": "Lima", "costo": "10.00"}, headers=auth).json()
     client.post("/admin/distritos", json={"nombre": "Miraflores", "zona_envio_id": zona["id"]}, headers=auth)
-    creado = client.post("/pedidos", json={"nombre": "Ana Prueba", "celular": "911111111", "distrito_id": 1,
-                                           "modalidad_entrega": "recojo",
+    creado = client.post("/pedidos", json={"nombres": "Ana", "apellido_paterno": "Prueba",
+                                           "apellido_materno": "Ficticia", "celular": "911111111",
+                                           "distrito_id": 1, "direccion": "Calle Ficticia 123",
                                            "items": [{"variante_id": 1, "cantidad": 3}]})
     assert creado.status_code == 201, creado.text
     assert _existencias(client, auth)[1] == 3  # pendiente: no descuenta
