@@ -106,57 +106,11 @@
   text-align: center;
 }
 
-/* Delivery / Recojo */
-.Pedido__opciones {
+/* Apellido paterno y materno: uno debajo del otro en celular, lado a lado desde 640px */
+.Pedido__fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-}
-
-.Pedido__opcion {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--color-marmol-beige);
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.Pedido__opcion input {
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-  flex-shrink: 0;
-  accent-color: var(--color-marron);
-}
-
-.Pedido__opcion--elegida {
-  border-color: var(--color-marron);
-  box-shadow: inset 0 0 0 1px var(--color-marron);
-}
-
-.Pedido__opcion:has(input:focus-visible) {
-  outline: 2px solid var(--color-marron);
-  outline-offset: 2px;
-}
-
-.Pedido__grupo.campo-invalido .Pedido__opcion {
-  border-color: var(--color-error);
-}
-
-.Pedido__opcionTitulo {
-  display: block;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.Pedido__opcionTexto {
-  display: block;
-  margin-top: 2px;
-  font-size: 13px;
-  line-height: 1.4;
-  opacity: 0.75;
+  gap: 16px;
 }
 
 /* ----- Resumen ----- */
@@ -408,7 +362,7 @@
 
 /* ===== Escritorio ===== */
 @media (min-width: 640px) {
-  .Pedido__opciones {
+  .Pedido__fila {
     grid-template-columns: 1fr 1fr;
   }
 

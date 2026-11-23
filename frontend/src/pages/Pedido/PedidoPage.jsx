@@ -9,13 +9,29 @@ import { listarDistritosEnvio } from '../../services/envioService.js';
 import { guardarUltimoPedido, leerUltimoPedido, registrarPedido } from '../../services/pedidosService.js';
 import { aCentimos, avisoPiezaNatural, combinarConRevision, resumirCarrito } from '../../utils/carrito.js';
 import { soles } from '../../utils/formato.js';
-import { NOMBRE_MAX, TEXTO_MAX, armarCuerpoPedido, costoEnvioEstimado, validarDatosPedido } from '../../utils/pedido.js';
+import {
+  APELLIDO_MAX,
+  DIRECCION_MAX,
+  NOMBRES_MAX,
+  REFERENCIA_MAX,
+  armarCuerpoPedido,
+  costoEnvioEstimado,
+  validarDatosPedido,
+} from '../../utils/pedido.js';
 import { armarMensajePedido, enlaceWhatsApp } from '../../utils/whatsapp.js';
 import './Pedido.css';
 
 // Orden en que se revisan los campos: el foco va al primero que tenga error (E4).
-const CAMPOS = ['nombre', 'celular', 'modalidad', 'distrito', 'direccion', 'referencia'];
-const DATOS_INICIALES = { nombre: '', celular: '', modalidad: 'delivery', distritoId: '', direccion: '', referencia: '' };
+const CAMPOS = ['nombres', 'apellido_paterno', 'apellido_materno', 'celular', 'distrito', 'direccion', 'referencia'];
+const DATOS_INICIALES = {
+  nombres: '',
+  apellido_paterno: '',
+  apellido_materno: '',
+  celular: '',
+  distritoId: '',
+  direccion: '',
+  referencia: '',
+};
 
 const indexar = (items = []) => Object.fromEntries(items.map((item) => [item.variante_id, item]));
 const firmaDe = (items) => items.map((i) => `${i.variante_id}:${i.cantidad}`).join(',');
@@ -129,7 +145,7 @@ function FormularioPedido({ onConfirmado }) {
   const resumen = resumirCarrito(lineas);
   const avisoNatural = avisoPiezaNatural(lineas, revision.avisoTexto); // HU006 Esc. 2: antes de confirmar
   const distrito = distritos.lista.find((d) => d.id === Number(datos.distritoId));
-  const envio = costoEnvioEstimado(datos.modalidad, distrito);
+  const envio = costoEnvioEstimado(distrito);
   const totalCentimos = resumen.totalCentimos + aCentimos(envio);
 
   // E4 / E5: los errores se calculan a partir de los datos (no se copian a otro estado)
@@ -284,9 +300,40 @@ function FormularioPedido({ onConfirmado }) {
             <legend className="Pedido__subtitulo">Tus datos</legend>
 
             <div className="Pedido__campo">
-              <label htmlFor="pedido-nombre">Nombre</label>
-              <input {...propsCampo('nombre', datos.nombre)} type="text" autoComplete="name" maxLength={NOMBRE_MAX} />
-              {mensajeError('nombre')}
+              <label htmlFor="pedido-nombres">Nombres</label>
+              <input
+                {...propsCampo('nombres', datos.nombres)}
+                type="text"
+                autoComplete="given-name"
+                autoCapitalize="words"
+                maxLength={NOMBRES_MAX}
+              />
+              {mensajeError('nombres')}
+            </div>
+
+            <div className="Pedido__fila">
+              <div className="Pedido__campo">
+                <label htmlFor="pedido-apellido_paterno">Apellido paterno</label>
+                <input
+                  {...propsCampo('apellido_paterno', datos.apellido_paterno)}
+                  type="text"
+                  autoComplete="family-name"
+                  autoCapitalize="words"
+                  maxLength={APELLIDO_MAX}
+                />
+                {mensajeError('apellido_paterno')}
+              </div>
+              <div className="Pedido__campo">
+                <label htmlFor="pedido-apellido_materno">Apellido materno</label>
+                <input
+                  {...propsCampo('apellido_materno', datos.apellido_materno)}
+                  type="text"
+                  autoComplete="off"
+                  autoCapitalize="words"
+                  maxLength={APELLIDO_MAX}
+                />
+                {mensajeError('apellido_materno')}
+              </div>
             </div>
 
             <div className="Pedido__campo">
@@ -304,35 +351,11 @@ function FormularioPedido({ onConfirmado }) {
             </div>
           </fieldset>
 
-          <fieldset
-            className={`Pedido__grupo ${errores.modalidad ? 'campo-invalido' : ''}`}
-            aria-describedby={errores.modalidad ? 'pedido-modalidad-error' : undefined}
-          >
-            <legend className="Pedido__subtitulo">Entrega</legend>
-            <div className="Pedido__opciones">
-              {[
-                { valor: 'delivery', titulo: 'Delivery', texto: 'Te lo llevamos a tu dirección.' },
-                { valor: 'recojo', titulo: 'Recojo', texto: 'Coordinas el punto de recojo por WhatsApp. Sin costo de envío.' },
-              ].map((opcion) => (
-                <label
-                  key={opcion.valor}
-                  className={`Pedido__opcion ${datos.modalidad === opcion.valor ? 'Pedido__opcion--elegida' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="modalidad"
-                    value={opcion.valor}
-                    checked={datos.modalidad === opcion.valor}
-                    onChange={cambiar}
-                  />
-                  <span>
-                    <span className="Pedido__opcionTitulo">{opcion.titulo}</span>
-                    <span className="Pedido__opcionTexto">{opcion.texto}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-            {mensajeError('modalidad')}
+          <fieldset className="Pedido__grupo">
+            <legend className="Pedido__subtitulo">Entrega a domicilio</legend>
+            <p className="Pedido__ayuda">
+              Te lo llevamos a tu dirección. El costo de envío depende de tu distrito.
+            </p>
 
             <div className="Pedido__campo">
               <label htmlFor="pedido-distrito">Distrito</label>
@@ -347,7 +370,7 @@ function FormularioPedido({ onConfirmado }) {
                 <select {...propsCampo('distrito', datos.distritoId)} disabled={distritos.fase === 'cargando'}>
                   <option value="">{distritos.fase === 'cargando' ? 'Cargando distritos…' : 'Elige tu distrito'}</option>
                   {distritos.lista.map((d) => {
-                    const sinDelivery = datos.modalidad === 'delivery' && !d.con_cobertura;
+                    const sinDelivery = !d.con_cobertura;
                     return (
                       <option key={d.id} value={d.id} disabled={sinDelivery}>
                         {d.nombre}
@@ -357,30 +380,31 @@ function FormularioPedido({ onConfirmado }) {
                   })}
                 </select>
               )}
-              {datos.modalidad === 'delivery' && envio != null && distrito && (
+              {envio != null && distrito && (
                 <p className="Pedido__ayuda">Envío a {distrito.nombre}: {soles(envio)}</p>
               )}
               {mensajeError('distrito')}
             </div>
 
-            {datos.modalidad === 'delivery' && (
-              <>
-                <div className="Pedido__campo">
-                  <label htmlFor="pedido-direccion">
-                    Dirección <span className="Pedido__opcional">(opcional)</span>
-                  </label>
-                  <input {...propsCampo('direccion', datos.direccion)} type="text" autoComplete="street-address" maxLength={TEXTO_MAX} />
-                  {mensajeError('direccion')}
-                </div>
-                <div className="Pedido__campo">
-                  <label htmlFor="pedido-referencia">
-                    Referencia <span className="Pedido__opcional">(opcional)</span>
-                  </label>
-                  <input {...propsCampo('referencia', datos.referencia)} type="text" maxLength={TEXTO_MAX} />
-                  {mensajeError('referencia')}
-                </div>
-              </>
-            )}
+            <div className="Pedido__campo">
+              <label htmlFor="pedido-direccion">Dirección</label>
+              <input
+                {...propsCampo('direccion', datos.direccion)}
+                type="text"
+                autoComplete="street-address"
+                maxLength={DIRECCION_MAX}
+                aria-describedby={`pedido-direccion-ayuda${errores.direccion ? ' pedido-direccion-error' : ''}`}
+              />
+              <p id="pedido-direccion-ayuda" className="Pedido__ayuda">Calle, número y, si tiene, dpto. Ejemplo: Av. Larco 345, dpto. 502</p>
+              {mensajeError('direccion')}
+            </div>
+            <div className="Pedido__campo">
+              <label htmlFor="pedido-referencia">
+                Referencia <span className="Pedido__opcional">(opcional)</span>
+              </label>
+              <input {...propsCampo('referencia', datos.referencia)} type="text" maxLength={REFERENCIA_MAX} />
+              {mensajeError('referencia')}
+            </div>
           </fieldset>
         </div>
 
@@ -454,11 +478,7 @@ function FormularioPedido({ onConfirmado }) {
             <div>
               <dt>Envío</dt>
               <dd>
-                {datos.modalidad === 'recojo'
-                  ? 'Sin costo'
-                  : envio != null
-                    ? soles(envio)
-                    : 'Elige tu distrito'}
+{envio != null ? soles(envio) : 'Elige tu distrito'}
               </dd>
             </div>
             <div className="Pedido__total" aria-live="polite">
@@ -541,6 +561,7 @@ function Confirmacion({ pedido, enlace, whatsappAbierto = false, desdeAntes = fa
             <dt>Productos</dt>
             <dd>{soles(pedido.subtotal)}</dd>
           </div>
+          {/* «Recojo» solo puede salir en un último pedido guardado antes de AKASH-196 */}
           <div>
             <dt>{pedido.modalidad_entrega === 'delivery' ? `Envío a ${pedido.distrito}` : 'Recojo'}</dt>
             <dd>{pedido.modalidad_entrega === 'delivery' ? soles(pedido.costo_envio) : 'Sin costo'}</dd>
