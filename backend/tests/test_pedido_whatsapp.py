@@ -34,7 +34,8 @@ def tienda(client, auth):
 
 
 def _pedido(**cambios):
-    datos = {"nombre": "Ana Prueba", "celular": "911111111", "distrito_id": 1, "modalidad_entrega": "delivery",
+    datos = {"nombres": "Ana", "apellido_paterno": "Prueba", "apellido_materno": "Ficticia", "celular": "911111111",
+             "distrito_id": 1, "modalidad_entrega": "delivery",
              "direccion": "Calle Ficticia 123", "items": [{"variante_id": 1, "cantidad": 2},
                                                           {"variante_id": 2, "cantidad": 1}]}
     datos.update(cambios)
@@ -51,7 +52,7 @@ def test_registra_el_pedido_pendiente_con_numero(client, auth, tienda):
     assert pedido["estado"] == "pendiente"
     assert pedido["repetido"] is False
     assert (pedido["nombre"], pedido["celular"], pedido["distrito"], pedido["modalidad_entrega"]) == (
-        "Ana Prueba", "911111111", "Miraflores", "delivery")
+        "Ana Prueba Ficticia", "911111111", "Miraflores", "delivery")
     assert [(i["producto"], i["variante"], i["cantidad"], i["precio_unitario"], i["subtotal"])
             for i in pedido["items"]] == [
         ("Anillo de plata 925 con piedra", "Amatista", 2, "45.00", "90.00"),
@@ -65,7 +66,7 @@ def test_es_publico_y_aparece_en_la_bandeja(client, auth, tienda):
     assert [(p["numero"], p["estado"], p["metodo_pago"], p["total"]) for p in bandeja] == [
         ("P-0001", "pendiente", "whatsapp", "140.00")]
     detalle = client.get("/admin/pedidos/1", headers=auth).json()
-    assert detalle["clienta"] == {"nombre": "Ana Prueba", "telefono": "911111111", "correo": None,
+    assert detalle["clienta"] == {"nombre": "Ana Prueba Ficticia", "telefono": "911111111", "correo": None,
                                   "direccion": "Calle Ficticia 123", "referencia": None}
     assert [(h["estado"], h["usuario"]) for h in detalle["historial"]] == [("pendiente", None)]
 
@@ -85,9 +86,17 @@ def test_numeros_correlativos(client, tienda):
     assert client.post(URL, json=_pedido(celular="922222222")).json()["numero"] == "P-0002"
 
 
-def test_recojo_no_cobra_envio_ni_exige_cobertura(client, tienda):
-    pedido = client.post(URL, json=_pedido(modalidad_entrega="recojo", distrito_id=2)).json()
-    assert (pedido["costo_envio"], pedido["total"]) == ("0.00", "130.00")
+def test_recojo_ya_no_existe(client, auth, tienda):
+    """AKASH-211: el recojo se descartó; siempre es delivery y siempre se cobra envío."""
+    assert client.post(URL, json=_pedido(modalidad_entrega="recojo", distrito_id=2)).status_code == 422
+    assert client.get("/admin/pedidos", headers=auth).json() == []
+
+
+def test_modalidad_por_defecto_es_delivery(client, tienda):
+    datos = _pedido()
+    del datos["modalidad_entrega"]
+    pedido = client.post(URL, json=datos).json()
+    assert (pedido["modalidad_entrega"], pedido["costo_envio"]) == ("delivery", "10.00")
 
 
 def test_misma_variante_dos_veces_se_suma(client, tienda):
@@ -96,15 +105,16 @@ def test_misma_variante_dos_veces_se_suma(client, tienda):
     assert [(i["variante"], i["cantidad"]) for i in pedido["items"]] == [("Amatista", 3)]
 
 
-def test_direccion_y_referencia_opcionales(client, tienda):
-    respuesta = client.post(URL, json=_pedido(direccion="   ", referencia=None))
+def test_referencia_opcional(client, tienda):
+    respuesta = client.post(URL, json=_pedido(referencia="   "))
     assert respuesta.status_code == 201
-    assert (respuesta.json()["direccion"], respuesta.json()["referencia"]) == (None, None)
+    assert respuesta.json()["referencia"] is None
 
 
 # --- E4: datos obligatorios ---
 
-@pytest.mark.parametrize("campo", ["nombre", "celular", "distrito_id", "modalidad_entrega", "items"])
+@pytest.mark.parametrize("campo", ["nombres", "apellido_paterno", "apellido_materno", "celular", "distrito_id",
+                                   "direccion", "items"])
 def test_falta_un_dato_obligatorio(client, auth, tienda, campo):
     datos = _pedido()
     del datos[campo]
@@ -112,9 +122,10 @@ def test_falta_un_dato_obligatorio(client, auth, tienda, campo):
     assert client.get("/admin/pedidos", headers=auth).json() == []
 
 
-@pytest.mark.parametrize("nombre", ["", " ", "A", "x" * 81])
-def test_nombre_de_2_a_80_caracteres(client, tienda, nombre):
-    assert client.post(URL, json=_pedido(nombre=nombre)).status_code == 422
+@pytest.mark.parametrize("campo", ["nombres", "apellido_paterno", "apellido_materno"])
+@pytest.mark.parametrize("valor", ["", "   ", "A", "x" * 41])
+def test_nombres_y_apellidos_de_2_a_40_caracteres(client, tienda, campo, valor):
+    assert client.post(URL, json=_pedido(**{campo: valor})).status_code == 422
 
 
 def test_carrito_vacio(client, tienda):

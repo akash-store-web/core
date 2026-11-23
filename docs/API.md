@@ -487,38 +487,44 @@ Sin ventas: `200` con montos `"0.00"`, `"sin_ventas": true` y `"mensaje": "No hu
 
 ---
 
-## Público: enviar el pedido por WhatsApp (HU010)
+## Público: enviar el pedido por WhatsApp (HU010, HU035)
 
 ### `POST /pedidos` — registrar el pedido
 Sin login. Registra el pedido en estado `pendiente` con número correlativo (`P-0001`, `P-0002`…) y devuelve todo lo necesario para armar el mensaje de WhatsApp y la pantalla de confirmación. **No descuenta stock**: eso pasa cuando la propietaria confirma la venta en el panel (HU018).
 
+> ⚠️ **Cambio de HU035 (AKASH-209, 22/11/2026):** el nombre llega en **tres campos obligatorios** (`nombres`, `apellido_paterno`, `apellido_materno`), la **dirección es obligatoria** y **solo hay delivery** (el recojo se descartó, AKASH-211). Un cuerpo con solo `nombre` o con `modalidad_entrega: "recojo"` responde `422`. La web **no pide ni guarda el DNI**.
+
 ```json
-{"nombre": "Ana Prueba", "celular": "911111111", "distrito_id": 1, "modalidad_entrega": "delivery",
- "direccion": "Calle Ficticia 123", "referencia": "Frente al parque",
+{"nombres": "Ana María", "apellido_paterno": "Quispe", "apellido_materno": "Mamani",
+ "celular": "911111111", "distrito_id": 1, "modalidad_entrega": "delivery",
+ "direccion": "Av. Ficticia 123, dpto. 4", "referencia": "Frente al parque",
  "items": [{"variante_id": 1, "cantidad": 2}, {"variante_id": 2, "cantidad": 1}]}
 ```
 
 | Campo | Regla |
 |---|---|
-| `nombre` | Obligatorio, 2 a 80 caracteres |
+| `nombres`, `apellido_paterno`, `apellido_materno` | Obligatorios, **2 a 40** caracteres cada uno. Solo letras (con tildes, ñ, ü) y, entre palabras, un espacio, guion o apóstrofo: «María José», «De la Cruz», «D'Angelo», «Pérez-Rojas». Números o símbolos → `422`. Se recortan los espacios sobrantes. Juntos (con un espacio entre cada uno) no pueden pasar de **120** |
 | `celular` | Obligatorio, 9 dígitos que empiezan con 9 (sin `+51` ni espacios) |
-| `distrito_id` | Obligatorio, de `GET /envio/distritos`. Con `delivery` debe tener cobertura |
-| `modalidad_entrega` | `delivery` (cobra el costo de la zona) o `recojo` (envío 0.00) |
-| `direccion`, `referencia` | Opcionales, máx. 200 |
+| `distrito_id` | Obligatorio, de `GET /envio/distritos`; debe tener cobertura |
+| `modalidad_entrega` | Opcional; solo `delivery` (es el valor por defecto). Siempre se cobra el costo de la zona |
+| `direccion` | **Obligatoria**, 5 a 150 caracteres |
+| `referencia` | Opcional, máx. 200 |
 | `items` | 1 a 50 líneas; `cantidad` entera de 1 a 10 por producto (las líneas repetidas se suman). Si mandan precios, se ignoran |
+
+El nombre se guarda unido en `cliente.nombre` («Ana María Quispe Mamani», sin cambio de esquema) y así sale en la respuesta (`nombre`), en la bandeja y en el detalle del panel. Si el formulario manda además `nombre` ya unido, se ignora.
 
 **`201` pedido nuevo** · **`200` con `"repetido": true`** si el mismo celular manda el mismo carrito dentro de 2 minutos (doble clic, E9): devuelve el pedido ya registrado, no crea otro.
 ```json
-{"numero": "P-0001", "estado": "pendiente", "fecha": "2026-11-12T15:20:00Z", "nombre": "Ana Prueba",
+{"numero": "P-0001", "estado": "pendiente", "fecha": "2026-11-12T15:20:00Z", "nombre": "Ana María Quispe Mamani",
  "celular": "911111111", "distrito": "Miraflores", "modalidad_entrega": "delivery",
- "direccion": "Calle Ficticia 123", "referencia": "Frente al parque",
+ "direccion": "Av. Ficticia 123, dpto. 4", "referencia": "Frente al parque",
  "items": [{"variante_id": 1, "producto": "Anillo de plata 925 con piedra", "variante": "Amatista",
             "cantidad": 2, "precio_unitario": "45.00", "subtotal": "90.00"}],
  "subtotal": "130.00", "costo_envio": "10.00", "total": "140.00", "repetido": false}
 ```
 
 **Errores**
-- `422`: falta un dato o es inválido; distrito inexistente o **sin cobertura** con `delivery` (`detail` en texto: "El distrito no tiene cobertura de envío; escríbenos por WhatsApp para coordinar"); más de 10 unidades de un producto.
+- `422`: falta un dato o es inválido (en `detail[].loc` viene el campo: `nombres`, `apellido_paterno`, `apellido_materno`, `direccion`…); distrito inexistente o **sin cobertura** (`detail` en texto: "El distrito no tiene cobertura de envío; escríbenos por WhatsApp para coordinar"); más de 10 unidades de un producto.
 - `409` con **`detail` objeto** si algo se agotó, se despublicó o no alcanza (E6). No se registra el pedido:
 ```json
 {"detail": {"mensaje": "Algunos productos ya no están disponibles; quítalos o ajusta la cantidad antes de enviar",

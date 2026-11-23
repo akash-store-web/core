@@ -13,7 +13,7 @@ from app.models.cliente import Cliente
 from app.models.movimiento_stock import TipoMovimiento
 from app.models.distrito import Distrito
 from app.models.pedido import (PREFIJO_NUMERO, DetallePedido, EstadoPedido, HistorialEstadoPedido, MetodoPago,
-                               ModalidadEntrega, Pedido)
+                               Pedido)
 from app.models.variante import Variante
 from app.schemas.carrito import CarritoIn, ItemCarritoIn
 from app.schemas.pedido import (MAX_POR_LINEA, CambioEstadoOut, ClientaOut, ItemPedidoOut, LineaPedidoOut,
@@ -88,13 +88,11 @@ def registrar_pedido(db: Session, datos: PedidoIn) -> PedidoCreadoOut:
     distrito = db.get(Distrito, datos.distrito_id)
     if distrito is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Elige un distrito de la lista")
-    if datos.modalidad_entrega == ModalidadEntrega.DELIVERY:
-        envio = costo_envio(distrito)
-        if envio is None:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
-                                "El distrito no tiene cobertura de envío; escríbenos por WhatsApp para coordinar")
-    else:
-        envio = Decimal("0.00")
+    # Solo delivery (AKASH-211 descartó el recojo): siempre se cobra el envío de la zona del distrito.
+    envio = costo_envio(distrito)
+    if envio is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            "El distrito no tiene cobertura de envío; escríbenos por WhatsApp para coordinar")
 
     # Un pedido nuevo a la vez: el correlativo y el control de doble envío no pueden cruzarse.
     if db.get_bind().dialect.name == "postgresql":
@@ -123,7 +121,7 @@ def registrar_pedido(db: Session, datos: PedidoIn) -> PedidoCreadoOut:
     subtotal = sum((i.precio_unitario * i.cantidad for i in revision.items), Decimal("0.00"))
     pedido = Pedido(
         numero=_siguiente_numero(db),
-        cliente=Cliente(nombre=datos.nombre, telefono=datos.celular, direccion=datos.direccion,
+        cliente=Cliente(nombre=datos.nombre_completo, telefono=datos.celular, direccion=datos.direccion,
                         referencia=datos.referencia),
         distrito_id=distrito.id, fecha=ahora, modalidad_entrega=datos.modalidad_entrega,
         subtotal=subtotal, costo_envio=envio, total=subtotal + envio,

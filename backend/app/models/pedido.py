@@ -27,9 +27,9 @@ class MetodoPago:
 
 class ModalidadEntrega:
     DELIVERY = "delivery"  # a un distrito con zona de envío; cobra el costo de la zona
-    RECOJO = "recojo"      # la clienta recoge; sin costo de envío
+    # El recojo se descartó (AKASH-211, 22/11/2026): la propietaria siempre cobra envío.
 
-    TODAS = (DELIVERY, RECOJO)
+    TODAS = (DELIVERY,)
 
 
 PREFIJO_NUMERO = "P-"  # P-0001, P-0002… (HU010 escenario 1)

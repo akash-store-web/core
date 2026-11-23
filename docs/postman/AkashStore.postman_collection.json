@@ -698,7 +698,7 @@
             "description": "HU010. Registra el pedido «pendiente» (P-0001…) sin descontar stock. 201 = nuevo; 200 con `repetido: true` = doble envío. 409 si algo se agotó (`detail.items`); 422 por datos inválidos o distrito sin cobertura. ⚠️ Escribe en la base del entorno elegido. Avisa a Raúl para borrar el pedido de prueba.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre\": \"[PRUEBA] QA\",\n  \"celular\": \"900000000\",\n  \"distrito_id\": {{distrito_id}},\n  \"modalidad_entrega\": \"delivery\",\n  \"direccion\": \"Dirección de prueba\",\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 1\n    }\n  ]\n}",
+              "raw": "{\n  \"nombres\": \"Prueba\",\n  \"apellido_paterno\": \"Postman\",\n  \"apellido_materno\": \"Qa\",\n  \"celular\": \"900000000\",\n  \"distrito_id\": {{distrito_id}},\n  \"modalidad_entrega\": \"delivery\",\n  \"direccion\": \"Dirección de prueba\",\n  \"items\": [\n    {\n      \"variante_id\": {{variante_id}},\n      \"cantidad\": 1\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
